@@ -142,7 +142,7 @@ function constraint_dnep_power_balance(pm::AbstractDCPModel, n::Int, i::Int, bus
     ps   = get(var(pm, n),   :ps, Dict()); _check_var_keys(ps, bus_storage, "active power", "storage")
     psw  = get(var(pm, n),  :psw, Dict()); _check_var_keys(psw, bus_arcs_sw, "active power", "switch")
     p_ne = get(var(pm, n), :p_ne, Dict()); _check_var_keys(p_ne, bus_arcs_ne, "active power", "ne_branch")
-    pg_ne = get(var(pm, n), :pg_ne, Dict()); _check_var_keys(pg_ne, bus_arcs_gen, "active power", "ne_gen")
+    pg_ne = get(var(pm, n), :pg_ne, Dict()); _check_var_keys(pg_ne, bus_ne_gens, "active power", "ne_gen")
 
     cstr = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)

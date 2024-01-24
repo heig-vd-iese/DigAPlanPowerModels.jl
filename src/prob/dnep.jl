@@ -97,6 +97,10 @@ function _ref_add_ne!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     end
     ref[:ne_bus_arcs] = ne_bus_arcs
     
+    if !haskey(ref, :ne_buspairs)
+        ref[:ne_buspairs] = calc_buspair_parameters(ref[:bus], ref[:ne_branch])
+    end
+
     bus_ne_gens = Dict((i, Int[]) for (i,bus) in ref[:bus])
     for (i,gen) in ref[:ne_gen]
         push!(bus_ne_gens[gen["bus"]], i)
