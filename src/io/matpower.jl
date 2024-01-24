@@ -730,6 +730,12 @@ function export_matpower(io::IO, data::Dict{String,Any})
     for (idx,gen) in data["gen"]
         generators[gen["index"]] = gen
     end
+    ne_gen = Dict{Int, Dict}()
+    if haskey(data, "ne_gen")
+        for (idx,gen) in data["ne_gen"]
+            ne_gen[gen["index"]] = gen
+        end
+    end
     storage = Dict{Int, Dict}()
     for (idx,strg) in data["storage"]
         storage[strg["index"]] = strg
@@ -1041,6 +1047,33 @@ function export_matpower(io::IO, data::Dict{String,Any})
         println(io)
     end
 
+    # ne gen is not part of the matpower specs. However, it is treated as a special case by the matpower parser
+    if haskey(data, "ne_gen")
+        println(io, "%column_names%    bus    pg    qg    qmax    qmin    vg    mbase    gen_status    pmax    pmin construction_cost")
+        println(io, "mpc.ne_gen = [")
+        i = 1
+        for (idx,gen) in sort(collect(ne_gen), by=(x) -> x.first)
+            if idx != gen["index"]
+                Memento.warn(_LOGGER, "The index of the ne_gen does not match the matpower assigned index. Any data that uses gen indexes for reference is corrupted.");
+            end
+            println(io,
+                "\t", gen["bus"],
+                "\t", gen["pg"],
+                "\t", gen["qg"],
+                "\t", _get_default(gen, "qmax"),
+                "\t", _get_default(gen, "qmin"),
+                "\t", _get_default(gen, "mbase"),
+                "\t", _get_default(gen, "gen_status"),
+                "\t", _get_default(gen, "pmax"),
+                "\t", _get_default(gen, "pmin"),
+                "\t", _get_default(gen, "construction_cost"),
+            )
+            i = i+1
+        end
+        println(io, "];");
+        println(io)
+    end
+
     if all(haskey(bus, "name") for (i,bus) in buses)
         # Print the bus name data
         println(io, "%% bus names")
@@ -1072,10 +1105,14 @@ function export_matpower(io::IO, data::Dict{String,Any})
     # Print the extra switch data
     _export_extra_data(io, data, "switch", Set(["index", "source_id", "f_bus", "t_bus", "psw", "qsw", "state", "thermal_rating", "status"]); postfix="_data")
 
-
     # Print the extra ne_branch data
     if haskey(data, "ne_branch")
         _export_extra_data(io, data, "ne_branch", Set(["index", "source_id", "f_bus", "t_bus", "br_r", "br_x", "br_b", "b_to", "b_fr", "rate_a", "rate_b", "rate_c", "tap", "shift", "br_status", "angmin", "angmax", "transformer", "construction_cost", "g_to", "g_fr"]); postfix="_data")
+    end
+
+    # Print the extra ne_gen data
+    if haskey(data, "ne_gen")
+        _export_extra_data(io, data, "ne_gen", Set(["index", "source_id", "bus", "pg", "qg", "qmax", "qmin", "vg", "mbase", "gen_status", "pmax", "pmin", "construction_cost"]); postfix="_data")
     end
 
     # print the extra load data
@@ -1086,7 +1123,7 @@ function export_matpower(io::IO, data::Dict{String,Any})
 
     # print the extra component data
     for (key, value) in data
-        if key != "bus" && key != "gen" && key != "branch" && key != "load" && key != "shunt" && key != "storage" && key != "dcline" && key != "switch" && key != "ne_branch" && key != "version" && key != "baseMVA" && key != "per_unit" && key != "name" && key != "source_type" && key != "source_version"
+        if key != "bus" && key != "gen" && key != "branch" && key != "load" && key != "shunt" && key != "storage" && key != "dcline" && key != "switch" && key != "ne_branch" && key != "ne_gen" && key != "version" && key != "baseMVA" && key != "per_unit" && key != "name" && key != "source_type" && key != "source_version"
             _export_extra_data(io, data, key)
         end
     end

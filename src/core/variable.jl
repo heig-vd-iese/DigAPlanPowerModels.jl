@@ -284,7 +284,7 @@ function variable_gen_power_real(pm::AbstractPowerModel; nw::Int=nw_id_default, 
     report && sol_component_value(pm, nw, :gen, :pg, ids(pm, nw, :gen), pg)
 end
 
-"variable: `qq[j]` for `j` in `gen`"
+"variable: `qg[j]` for `j` in `gen`"
 function variable_gen_power_imaginary(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     qg = var(pm, nw)[:qg] = JuMP.@variable(pm.model,
         [i in ids(pm, nw, :gen)], base_name="$(nw)_qg",
@@ -300,6 +300,33 @@ function variable_gen_power_imaginary(pm::AbstractPowerModel; nw::Int=nw_id_defa
 
     report && sol_component_value(pm, nw, :gen, :qg, ids(pm, nw, :gen), qg)
 end
+
+function variable_ne_gen_power_real(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    pg_ne = var(pm, nw)[:pg_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_gen)], base_name="$(nw)_pg_ne",
+        start = comp_start_value(ref(pm, nw, :ne_gen, i), "pg_ne_start")
+    )
+
+    report && sol_component_value(pm, nw, :ne_gen, :pg, ids(pm, nw, :ne_gen), pg_ne)
+end
+
+
+function variable_ne_gen_power_imaginary(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    qg_ne = var(pm, nw)[:qg_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_gen)], base_name="$(nw)_qg_ne",
+        start = comp_start_value(ref(pm, nw, :ne_gen, i), "qg_ne_start")
+    )
+
+    if bounded
+        for (i,gen) in ref(pm, nw, :ne_gen)
+            JuMP.set_lower_bound(qg_ne[i], gen["qmin"])
+            JuMP.set_upper_bound(qg_ne[i], gen["qmax"])
+        end
+    end
+    
+    report && sol_component_value(pm, nw, :ne_gen, :qg, ids(pm, nw, :ne_gen), qg_ne)
+end
+
 
 "variable: `crg[j]` for `j` in `gen`"
 function variable_gen_current_real(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -394,6 +421,30 @@ function variable_gen_power_imaginary_on_off(pm::AbstractPowerModel; nw::Int=nw_
     report && sol_component_value(pm, nw, :gen, :qg, ids(pm, nw, :gen), qg)
 end
 
+"variable: `0 <= ne_gen[i] <= 1` for `i` in `gen`s"
+function variable_ne_gen_indicator(pm::AbstractPowerModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_gen_ne = var(pm, nw)[:gen_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_gen)], base_name="$(nw)_ne_gen",
+            binary = true,
+            start = comp_start_value(ref(pm, nw, :ne_gen,i), "gen_ne_start", 1.0)
+        )
+    else
+        z_gen_ne = var(pm, nw)[:gen_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_gen)], base_name="$(nw)_ne_gen",
+            lower_bound = 0.0,
+            upper_bound = 1.0,
+            start = comp_start_value(ref(pm, nw, :ne_gen, i), "gen_ne_start", 1.0)
+        )
+    end
+
+    report && sol_component_value(pm, nw, :ne_gen, :built, ids(pm, nw, :ne_gen), z_gen_ne)
+end
+
+function variable_ne_gen_power(pm::AbstractPowerModel; kwargs...)
+    variable_ne_gen_power_real(pm; kwargs...)
+    variable_ne_gen_power_imaginary(pm; kwargs...)
+end
 
 
 ""
@@ -1254,14 +1305,14 @@ function variable_ne_branch_indicator(pm::AbstractPowerModel; nw::Int=nw_id_defa
         z_branch_ne = var(pm, nw)[:branch_ne] = JuMP.@variable(pm.model,
             [l in ids(pm, nw, :ne_branch)], base_name="$(nw)_branch_ne",
             binary = true,
-            start = comp_start_value(ref(pm, nw, :ne_branch, l), "branch_tnep_start", 1.0)
+            start = comp_start_value(ref(pm, nw, :ne_branch, l), "branch_nep_start", 1.0)
         )
     else
         z_branch_ne = var(pm, nw)[:branch_ne] = JuMP.@variable(pm.model,
             [l in ids(pm, nw, :ne_branch)], base_name="$(nw)_branch_ne",
             lower_bound = 0.0,
             upper_bound = 1.0,
-            start = comp_start_value(ref(pm, nw, :ne_branch, l), "branch_tnep_start", 1.0)
+            start = comp_start_value(ref(pm, nw, :ne_branch, l), "branch_nep_start", 1.0)
         )
     end
 

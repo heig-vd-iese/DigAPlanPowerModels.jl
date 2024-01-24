@@ -87,6 +87,7 @@ Some of the common keys include:
 If `:ne_branch` exists, then the following keys are also available with similar semantics:
 
 * `:ne_branch`, `:ne_arcs_from`, `:ne_arcs_to`, `:ne_arcs`, `:ne_bus_arcs`, `:ne_buspairs`.
+
 """
 function ref_add_core!(ref::Dict{Symbol,Any})
     for (nw, nw_ref) in ref[:it][pm_it_sym][:nw]

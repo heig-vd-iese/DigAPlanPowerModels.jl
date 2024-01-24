@@ -263,6 +263,70 @@ function constraint_ne_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_ar
     end
 end
 
+""
+function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
+    w    = var(pm, n, :w, i)
+    p    = get(var(pm, n),    :p, Dict()); _check_var_keys(p, bus_arcs, "active power", "branch")
+    q    = get(var(pm, n),    :q, Dict()); _check_var_keys(q, bus_arcs, "reactive power", "branch")
+    pg   = get(var(pm, n),   :pg, Dict()); _check_var_keys(pg, bus_gens, "active power", "generator")
+    qg   = get(var(pm, n),   :qg, Dict()); _check_var_keys(qg, bus_gens, "reactive power", "generator")
+    ps   = get(var(pm, n),   :ps, Dict()); _check_var_keys(ps, bus_storage, "active power", "storage")
+    qs   = get(var(pm, n),   :qs, Dict()); _check_var_keys(qs, bus_storage, "reactive power", "storage")
+    psw  = get(var(pm, n),  :psw, Dict()); _check_var_keys(psw, bus_arcs_sw, "active power", "switch")
+    qsw  = get(var(pm, n),  :qsw, Dict()); _check_var_keys(qsw, bus_arcs_sw, "reactive power", "switch")
+    p_ne = get(var(pm, n), :p_ne, Dict()); _check_var_keys(p_ne, bus_arcs_ne, "active power", "ne_branch")
+    q_ne = get(var(pm, n), :q_ne, Dict()); _check_var_keys(q_ne, bus_arcs_ne, "reactive power", "ne_branch")
+    pg_ne = get(var(pm, n), :pg_ne, Dict()); _check_var_keys(pg_ne, bus_ne_gens, "active power", "ne_gen")
+    qg_ne = get(var(pm, n), :qg_ne, Dict()); _check_var_keys(qg_ne, bus_ne_gens, "reactive power", "ne_gen")
+
+    cstr_p = JuMP.@constraint(pm.model,
+        sum(p[a] for a in bus_arcs)
+        + sum(psw[a_sw] for a_sw in bus_arcs_sw)
+        + sum(p_ne[a] for a in bus_arcs_ne)
+        ==
+        sum(pg[g] for g in bus_gens)
+        + sum(pg_ne[g] for g in bus_ne_gens)
+        - sum(ps[s] for s in bus_storage)
+        - sum(pd for pd in values(bus_pd))
+        - sum(gs for gs in values(bus_gs))*w
+    )
+    cstr_q = JuMP.@constraint(pm.model,
+        sum(q[a] for a in bus_arcs)
+        + sum(qsw[a_sw] for a_sw in bus_arcs_sw)
+        + sum(q_ne[a] for a in bus_arcs_ne)
+        ==
+        sum(qg[g] for g in bus_gens)
+        + sum(qg_ne[g] for g in bus_ne_gens)
+        - sum(qs[s] for s in bus_storage)
+        - sum(qd for qd in values(bus_qd))
+        + sum(bs for bs in values(bus_bs))*w
+    )
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :bus, i)[:lam_kcl_r] = cstr_p
+        sol(pm, n, :bus, i)[:lam_kcl_i] = cstr_q
+    end
+end
+
+
+"""
+```
+z[idx]*pmin[idx] <= pg_ne[idx] <= z[idx]*pmax[idx]
+z[idx]*qmin[idx] <= qg_ne[idx] <= z[idx]*qmax[idx]
+```
+"""
+function constraint_ne_gen(pm::AbstractWModels, n::Int, idx, pmin, pmax, qmin, qmax)
+    pg_ne  = var(pm, n, :pg_ne, idx)
+    qg_ne  = var(pm, n, :qg_ne, idx)
+    z_ne = var(pm, n, :gen_ne, idx)
+
+    JuMP.@constraint(pm.model, pg_ne <= z_ne*pmax)
+    JuMP.@constraint(pm.model, pg_ne >= z_ne*pmin)
+    JuMP.@constraint(pm.model, qg_ne <= z_ne*qmax)
+    JuMP.@constraint(pm.model, qg_ne >= z_ne*qmin)
+end
+
+
 
 ""
 function expression_branch_power_ohms_yt_from(pm::AbstractWRModels, n::Int, f_bus, t_bus, f_idx, t_idx, g, b, g_fr, b_fr, tr, ti, tm)

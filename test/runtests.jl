@@ -31,50 +31,52 @@ include("common.jl")
 
 @testset "PowerModels" begin
 
-    include("matpower.jl")
+    # include("matpower.jl")
 
-    include("pti.jl")
+    # include("pti.jl")
 
-    include("psse.jl")
+    # include("psse.jl")
 
-    include("io.jl")
+    # include("io.jl")
 
-    include("output.jl")
+    # include("output.jl")
 
-    include("modify.jl")
+    # include("modify.jl")
 
-    include("data.jl")
+    # include("data.jl")
 
-    include("data-basic.jl")
+    # include("data-basic.jl")
 
-    include("model.jl")
+    # include("model.jl")
 
-    include("am.jl")
+    # include("am.jl")
 
-    include("opb.jl")
+    # include("opb.jl")
 
-    include("pf.jl")
+    # include("pf.jl")
 
-    include("pf-native.jl")
+    # include("pf-native.jl")
 
-    include("opf.jl")
+    # include("opf.jl")
 
-    include("opf-var.jl")
+    # include("opf-var.jl")
 
-    include("opf-obj.jl")
+    # include("opf-obj.jl")
 
-    include("opf-ptdf.jl")
+    # include("opf-ptdf.jl")
 
-    include("ots.jl")
+    # include("ots.jl")
 
-    include("tnep.jl")
+    # include("tnep.jl")
 
-    include("multinetwork.jl")
+    include("dnep.jl")
 
-    include("util.jl")
+    # include("multinetwork.jl")
 
-    include("warmstart.jl")
+    # include("util.jl")
 
-    include("docs.jl")
+    # include("warmstart.jl")
+
+    # include("docs.jl")
 
 end

@@ -80,6 +80,7 @@ include("prob/opf_bf.jl")
 include("prob/opf_iv.jl")
 include("prob/ots.jl")
 include("prob/tnep.jl")
+include("prob/dnep.jl")
 include("prob/test.jl")
 
 include("util/obbt.jl")
