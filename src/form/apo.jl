@@ -301,13 +301,23 @@ z[idx]*qmin[idx] <= qg_ne[idx] <= z[idx]*qmax[idx]
 """
 function constraint_ne_gen(pm::AbstractActivePowerModel, n::Int, idx, pmin, pmax, qmin, qmax)
     pg_ne  = var(pm, n, :pg_ne, idx)
+    pg_ne_loss = var(pm, n, :pg_ne_loss, idx)
     qg_ne  = var(pm, n, :qg_ne, idx)
     z_ne = var(pm, n, :gen_ne, idx)
 
-    JuMP.@constraint(pm.model, pg_ne <= z_ne*pmax)
+    JuMP.@constraint(pm.model, pg_ne + pg_ne_loss == z_ne*pmax)
     JuMP.@constraint(pm.model, pg_ne >= z_ne*pmin)
+    JuMP.@constraint(pm.model, pg_ne_loss >= 0)
     JuMP.@constraint(pm.model, qg_ne <= z_ne*qmax)
     JuMP.@constraint(pm.model, qg_ne >= z_ne*qmin)
+end
+
+function constraint_gen(pm::AbstractActivePowerModel, n::Int, idx, pmax)
+    pg  = var(pm, n, :pg, idx)
+    pg_loss = var(pm, n, :pg_loss, idx)
+
+    JuMP.@constraint(pm.model, pg + pg_loss == pmax)
+    JuMP.@constraint(pm.model, pg_loss >= 0)
 end
 
 ""

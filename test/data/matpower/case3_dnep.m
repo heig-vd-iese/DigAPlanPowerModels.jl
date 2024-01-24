@@ -4,6 +4,8 @@
 function mpc = case3_dnep
 mpc.version = '2';
 mpc.baseMVA = 100.0;
+mpc.power_flex_price = 0.0001;
+mpc.voltage_uo_cost = 1000.0;
 
 mpc.bus = [
 	2	 3	 110.0	 40.0	 0.0	 0.0	 1	    1.10000	   -0.00000	 240.0	 1	    1.10000	    0.90000;

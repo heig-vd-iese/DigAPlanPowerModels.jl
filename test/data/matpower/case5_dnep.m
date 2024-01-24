@@ -3,6 +3,8 @@
 function mpc = case5_tnep
 mpc.version = '2';
 mpc.baseMVA = 100.0;
+mpc.power_flex_price = 0.0001;
+mpc.voltage_uo_cost = 1000.0;
 
 %% bus data
 %	bus_i	type	Pd	Qd	Gs	Bs	area	Vm	Va	baseKV	zone	Vmax	Vmin

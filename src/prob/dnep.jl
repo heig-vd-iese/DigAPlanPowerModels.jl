@@ -57,6 +57,10 @@ function build_dnep(pm::AbstractPowerModel)
         constraint_ne_gen(pm, i)
     end
 
+    for i in ids(pm, :gen)
+        constraint_gen(pm, i)
+    end
+
 end
 
 
@@ -65,7 +69,10 @@ function objective_dnep_cost(pm::AbstractPowerModel)
     return JuMP.@objective(pm.model, Min,
         sum(
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) + 
-            sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen])
+            sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) + 
+            sum(ref(pm, nw_id_default, :power_flex_price)*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
+            sum(ref(pm, nw_id_default, :power_flex_price)*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
+            #  + sum(ref(pm, nw_id_default, :voltage_uo_cost)*var(pm, n, :vm_uo, i) for (i,bus) in nw_ref[:bus])
         for (n, nw_ref) in nws(pm))
     )
 end

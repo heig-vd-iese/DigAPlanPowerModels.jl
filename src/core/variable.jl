@@ -274,6 +274,11 @@ function variable_gen_power_real(pm::AbstractPowerModel; nw::Int=nw_id_default, 
         start = comp_start_value(ref(pm, nw, :gen, i), "pg_start")
     )
 
+    pg_loss = var(pm, nw)[:pg_loss] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :gen)], base_name="$(nw)_pg_loss",
+        start = comp_start_value(ref(pm, nw, :gen, i), "pg_start")
+    )
+
     if bounded
         for (i, gen) in ref(pm, nw, :gen)
             JuMP.set_lower_bound(pg[i], gen["pmin"])
@@ -282,6 +287,7 @@ function variable_gen_power_real(pm::AbstractPowerModel; nw::Int=nw_id_default, 
     end
 
     report && sol_component_value(pm, nw, :gen, :pg, ids(pm, nw, :gen), pg)
+    report && sol_component_value(pm, nw, :gen, :pg_loss, ids(pm, nw, :gen), pg_loss)
 end
 
 "variable: `qg[j]` for `j` in `gen`"
@@ -307,7 +313,13 @@ function variable_ne_gen_power_real(pm::AbstractPowerModel; nw::Int=nw_id_defaul
         start = comp_start_value(ref(pm, nw, :ne_gen, i), "pg_ne_start")
     )
 
+    pg_ne_loss = var(pm, nw)[:pg_ne_loss] = JuMP.@variable(pm.model,
+    [i in ids(pm, nw, :gen)], base_name="$(nw)_pg_ne_loss",
+    start = comp_start_value(ref(pm, nw, :gen, i), "pg_start")
+)
+
     report && sol_component_value(pm, nw, :ne_gen, :pg, ids(pm, nw, :ne_gen), pg_ne)
+    report && sol_component_value(pm, nw, :ne_gen, :pg_loss, ids(pm, nw, :ne_gen), pg_ne_loss)
 end
 
 

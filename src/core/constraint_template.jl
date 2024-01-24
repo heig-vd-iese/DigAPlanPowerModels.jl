@@ -252,6 +252,12 @@ function constraint_dnep_power_balance(pm::AbstractPowerModel, i::Int; nw::Int=n
     
 end
 
+function constraint_gen(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    gen = ref(pm, nw, :gen, i)
+    constraint_gen(pm, nw, i, gen["pmax"])
+    
+end
+
 ""
 function constraint_ne_gen(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
     gen = ref(pm, nw, :ne_gen, i)
