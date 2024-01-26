@@ -242,16 +242,18 @@ function constraint_dnep_power_balance(pm::AbstractPowerModel, i::Int; nw::Int=n
     bus_loads = ref(pm, nw, :bus_loads, i)
     bus_shunts = ref(pm, nw, :bus_shunts, i)
     bus_storage = ref(pm, nw, :bus_storage, i)
+    bus_ne_storage = ref(pm, nw, :bus_ne_storage, i)
 
     bus_pd = Dict(k => ref(pm, nw, :load, k, "pd") for k in bus_loads)
     bus_qd = Dict(k => ref(pm, nw, :load, k, "qd") for k in bus_loads)
 
     bus_gs = Dict(k => ref(pm, nw, :shunt, k, "gs") for k in bus_shunts)
     bus_bs = Dict(k => ref(pm, nw, :shunt, k, "bs") for k in bus_shunts)
-    constraint_dnep_power_balance(pm, nw, i, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
-    
+    constraint_dnep_power_balance(pm, nw, i, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs, bus_ne_storage)
+
 end
 
+""
 function constraint_gen(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
     gen = ref(pm, nw, :gen, i)
     constraint_gen(pm, nw, i, gen["pmax"])
@@ -904,6 +906,12 @@ function constraint_storage_thermal_limit(pm::AbstractPowerModel, i::Int; nw::In
 end
 
 ""
+function constraint_ne_storage_thermal_limit(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    storage = ref(pm, nw, :ne_storage, i)
+    constraint_ne_storage_thermal_limit(pm, nw, i, storage["thermal_rating"])
+end
+
+""
 function constraint_storage_current_limit(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
     storage = ref(pm, nw, :storage, i)
     constraint_storage_current_limit(pm, nw, i, storage["storage_bus"], storage["current_rating"])
@@ -924,12 +932,27 @@ function constraint_storage_complementarity_mi(pm::AbstractPowerModel, i::Int; n
     constraint_storage_complementarity_mi(pm, nw, i, charge_ub, discharge_ub)
 end
 
+""
+function constraint_ne_storage_complementarity_mi(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    storage = ref(pm, nw, :ne_storage, i)
+    charge_ub = storage["charge_rating"]
+    discharge_ub = storage["discharge_rating"]
+
+    constraint_ne_storage_complementarity_mi(pm, nw, i, charge_ub, discharge_ub)
+end
 
 ""
 function constraint_storage_losses(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
     storage = ref(pm, nw, :storage, i)
 
     constraint_storage_losses(pm, nw, i, storage["storage_bus"], storage["r"], storage["x"], storage["p_loss"], storage["q_loss"])
+end
+
+""
+function constraint_ne_storage_losses(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    storage = ref(pm, nw, :ne_storage, i)
+
+    constraint_ne_storage_losses(pm, nw, i, storage["storage_bus"], storage["r"], storage["x"], storage["p_loss"], storage["q_loss"])
 end
 
 ""
@@ -967,6 +990,40 @@ function constraint_storage_state(pm::AbstractPowerModel, i::Int, nw_1::Int, nw_
 end
 
 ""
+function constraint_ne_storage_state(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    storage = ref(pm, nw, :ne_storage, i)
+
+    if haskey(ref(pm, nw), :time_elapsed)
+        time_elapsed = ref(pm, nw, :time_elapsed)
+    else
+        Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
+        time_elapsed = 1.0
+    end
+
+    constraint_ne_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], time_elapsed)
+end
+
+""
+function constraint_ne_storage_state(pm::AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
+    storage = ref(pm, nw_2, :ne_storage, i)
+
+    if haskey(ref(pm, nw_2), :time_elapsed)
+        time_elapsed = ref(pm, nw_2, :time_elapsed)
+    else
+        Memento.warn(_LOGGER, "network $(nw_2) should specify time_elapsed, using 1.0 as a default")
+        time_elapsed = 1.0
+    end
+
+    if haskey(ref(pm, nw_1, :ne_storage), i)
+        constraint_ne_storage_state(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], time_elapsed)
+    else
+        # if the storage device has status=0 in nw_1, then the stored energy variable will not exist. Initialize storage from data model instead.
+        Memento.warn(_LOGGER, "storage component $(i) was not found in network $(nw_1) while building constraint_storage_state between networks $(nw_1) and $(nw_2). Using the energy value from the storage component in network $(nw_2) instead")
+        constraint_ne_storage_state_initial(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], time_elapsed)
+    end
+end
+
+""
 function constraint_storage_on_off(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
     storage = ref(pm, nw, :storage, i)
     charge_ub = storage["charge_rating"]
@@ -979,6 +1036,22 @@ function constraint_storage_on_off(pm::AbstractPowerModel, i::Int; nw::Int=nw_id
     qmax = min(inj_ub[i], ref(pm, nw, :storage, i, "qmax"))
 
     constraint_storage_on_off(pm, nw, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
+end
+
+
+""
+function constraint_ne_storage_on_off(pm::AbstractPowerModel, i::Int; nw::Int=nw_id_default)
+    storage = ref(pm, nw, :ne_storage, i)
+    charge_ub = storage["charge_rating"]
+    discharge_ub = storage["discharge_rating"]
+
+    inj_lb, inj_ub = ref_calc_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
+    pmin = inj_lb[i]
+    pmax = inj_ub[i]
+    qmin = max(inj_lb[i], ref(pm, nw, :ne_storage, i, "qmin"))
+    qmax = min(inj_ub[i], ref(pm, nw, :ne_storage, i, "qmax"))
+
+    constraint_ne_storage_on_off(pm, nw, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
 end
 
 ### DC LINES ###

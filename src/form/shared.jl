@@ -264,7 +264,7 @@ function constraint_ne_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_ar
 end
 
 ""
-function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
+function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs, bus_ne_storage)
     w    = var(pm, n, :w, i)
     p    = get(var(pm, n),    :p, Dict()); _check_var_keys(p, bus_arcs, "active power", "branch")
     q    = get(var(pm, n),    :q, Dict()); _check_var_keys(q, bus_arcs, "reactive power", "branch")
@@ -278,6 +278,8 @@ function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_
     q_ne = get(var(pm, n), :q_ne, Dict()); _check_var_keys(q_ne, bus_arcs_ne, "reactive power", "ne_branch")
     pg_ne = get(var(pm, n), :pg_ne, Dict()); _check_var_keys(pg_ne, bus_ne_gens, "active power", "ne_gen")
     qg_ne = get(var(pm, n), :qg_ne, Dict()); _check_var_keys(qg_ne, bus_ne_gens, "reactive power", "ne_gen")
+    ps_ne = get(var(pm, n), :ps_ne, Dict()); _check_var_keys(ps_ne, bus_ne_storage, "active power", "ne_storage")
+    qs_ne = get(var(pm, n), :qs_ne, Dict()); _check_var_keys(qs_ne, bus_ne_storage, "reactive power", "ne_storage")
 
     cstr_p = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)
@@ -287,6 +289,7 @@ function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_
         sum(pg[g] for g in bus_gens)
         + sum(pg_ne[g] for g in bus_ne_gens)
         - sum(ps[s] for s in bus_storage)
+        - sum(ps_ne[s] for s in bus_ne_storage)
         - sum(pd for pd in values(bus_pd))
         - sum(gs for gs in values(bus_gs))*w
     )
@@ -298,6 +301,7 @@ function constraint_dnep_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_
         sum(qg[g] for g in bus_gens)
         + sum(qg_ne[g] for g in bus_ne_gens)
         - sum(qs[s] for s in bus_storage)
+        - sum(qs_ne[s] for s in bus_ne_storage)
         - sum(qd for qd in values(bus_qd))
         + sum(bs for bs in values(bus_bs))*w
     )
@@ -484,4 +488,19 @@ function constraint_storage_losses(pm::AbstractWConvexModels, n::Int, i, bus, r,
     JuMP.@constraint(pm.model, ps^2 + qs^2 <= w*ccms)
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss + r*ccms)
     JuMP.@constraint(pm.model, qs == qsc + q_loss + x*ccms)
+end
+
+""
+function constraint_ne_storage_losses(pm::AbstractWConvexModels, n::Int, i, bus, r, x, p_loss, q_loss)
+    w = var(pm, n, :w, bus)
+    ccms = var(pm, n, :ccms, i)
+    ps_ne = var(pm, n, :ps_ne, i)
+    qs_ne = var(pm, n, :qs_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+    qsc_ne = var(pm, n, :qsc_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne^2 + qs_ne^2 <= w*ccms)
+    JuMP.@constraint(pm.model, ps_ne + (sd_ne - sc_ne) == p_loss + r*ccms)
+    JuMP.@constraint(pm.model, qs_ne == qsc_ne + q_loss + x*ccms)
 end

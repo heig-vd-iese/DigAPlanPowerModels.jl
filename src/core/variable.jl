@@ -1138,6 +1138,95 @@ function variable_storage_complementary_indicator(pm::AbstractPowerModel; nw::In
     report && sol_component_value(pm, nw, :storage, :sd_on, ids(pm, nw, :storage), sd_on)
 end
 
+
+"do nothing by default but some formulations require this"
+function variable_ne_storage_current(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+end
+
+
+""
+function variable_ne_storage_energy(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    se_ne = var(pm, nw)[:se_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_se_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "se_start", 1)
+    )
+
+    if bounded
+        for (i, storage) in ref(pm, nw, :ne_storage)
+            JuMP.set_lower_bound(se_ne[i], 0)
+            JuMP.set_upper_bound(se_ne[i], storage["energy_rating"])
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :se_ne, ids(pm, nw, :ne_storage), se_ne)
+end
+
+""
+function variable_ne_storage_charge(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    sc_ne = var(pm, nw)[:sc_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sc_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "sc_start", 1)
+    )
+
+    if bounded
+        for (i, storage) in ref(pm, nw, :ne_storage)
+            JuMP.set_lower_bound(sc_ne[i], 0)
+            JuMP.set_upper_bound(sc_ne[i], storage["charge_rating"])
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :sc_ne, ids(pm, nw, :ne_storage), sc_ne)
+end
+
+""
+function variable_ne_storage_discharge(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    sd_ne = var(pm, nw)[:sd_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sd_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "sd_start", 1)
+    )
+
+    if bounded
+        for (i, storage) in ref(pm, nw, :ne_storage)
+            JuMP.set_lower_bound(sd_ne[i], 0)
+            JuMP.set_upper_bound(sd_ne[i], storage["discharge_rating"])
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :sd_ne, ids(pm, nw, :ne_storage), sd_ne)
+end
+
+""
+function variable_ne_storage_complementary_indicator(pm::AbstractPowerModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        sc_on_ne = var(pm, nw)[:sc_on_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sc_on_ne",
+            binary = true,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "sc_on_start", 0)
+        )
+        sd_on_ne = var(pm, nw)[:sd_on_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sd_on_ne",
+            binary = true,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "sd_on_start", 0)
+        )
+    else
+        sc_on_ne = var(pm, nw)[:sc_on_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sc_on_ne",
+            lower_bound = 0,
+            upper_bound = 1,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "sc_on_start", 0)
+        )
+        sd_on_ne = var(pm, nw)[:sd_on_ne] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_sd_on_ne",
+            lower_bound = 0,
+            upper_bound = 1,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "sd_on_start", 0)
+        )
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :sc_on_ne, ids(pm, nw, :ne_storage), sc_on_ne)
+    report && sol_component_value(pm, nw, :ne_storage, :sd_on_ne, ids(pm, nw, :ne_storage), sd_on_ne)
+end
+
 function variable_storage_power_mi_on_off(pm::AbstractPowerModel; kwargs...)
     variable_storage_power_real_on_off(pm; kwargs...)
     variable_storage_power_imaginary_on_off(pm; kwargs...)
@@ -1214,6 +1303,83 @@ function variable_storage_power_control_imaginary_on_off(pm::AbstractPowerModel;
 end
 
 
+function variable_ne_storage_power_mi_on_off(pm::AbstractPowerModel; kwargs...)
+    variable_ne_storage_power_real_on_off(pm; kwargs...)
+    variable_ne_storage_power_imaginary_on_off(pm; kwargs...)
+    variable_ne_storage_power_control_imaginary_on_off(pm; kwargs...)
+    variable_ne_storage_current(pm; kwargs...)
+    variable_ne_storage_energy(pm; kwargs...)
+    variable_ne_storage_charge(pm; kwargs...)
+    variable_ne_storage_discharge(pm; kwargs...)
+    variable_ne_storage_complementary_indicator(pm; kwargs...)
+end
+
+function variable_ne_storage_power_real_on_off(pm::AbstractPowerModel; nw::Int=nw_id_default, report::Bool=true)
+    ps_ne = var(pm, nw)[:ps_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_ps_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "ps_ne_start")
+    )
+
+    inj_lb_ne, inj_ub_ne = ref_calc_ne_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
+
+    for i in ids(pm, nw, :ne_storage)
+        if !isinf(inj_lb_ne[i])
+            JuMP.set_lower_bound(ps_ne[i], min(0, inj_lb_ne[i]))
+        end
+        if !isinf(inj_lb_ne[i])
+            JuMP.set_upper_bound(ps_ne[i], max(0, inj_ub_ne[i]))
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :ps_ne, ids(pm, nw, :ne_storage), ps_ne)
+end
+
+
+function variable_ne_storage_power_imaginary_on_off(pm::AbstractPowerModel; nw::Int=nw_id_default, report::Bool=true)
+    inj_lb_ne, inj_ub_ne = ref_calc_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
+
+    qs_ne = var(pm, nw)[:qs_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_qs_ne",
+        lower_bound = min(0, max(inj_lb_ne[i], ref(pm, nw, :ne_storage, i, "qmin"))),
+        upper_bound = max(0, min(inj_ub_ne[i], ref(pm, nw, :ne_storage, i, "qmax"))),
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "qs_start")
+    )
+
+    report && sol_component_value(pm, nw, :ne_storage, :qs_ne, ids(pm, nw, :ne_storage), qs_ne)
+end
+
+
+"""
+a reactive power slack variable that enables the storage device to inject or
+consume reactive power at its connecting bus, subject to the injection limits
+of the device.
+"""
+function variable_ne_storage_power_control_imaginary_on_off(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    qsc_ne = var(pm, nw)[:qsc_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_qsc_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "qsc_start")
+    )
+
+    if bounded
+        inj_lb_ne, inj_ub_ne = ref_calc_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
+
+        for (i,ne_storage) in ref(pm, nw, :ne_storage)
+
+            if !isinf(inj_lb_ne[i]) || haskey(ne_storage, "qmin")
+                lb = max(inj_lb_ne[i], get(ne_storage, "qmin", -Inf))
+                JuMP.set_lower_bound(qsc_ne[i], min(lb, 0.0))
+            end
+            if !isinf(inj_ub_ne[i]) || haskey(ne_storage, "qmax")
+                ub = min(inj_ub_ne[i], get(ne_storage, "qmax",  Inf))
+                JuMP.set_upper_bound(qsc_ne[i], max(ub, 0.0))
+            end
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :qsc, ids(pm, nw, :ne_storage), qsc_ne)
+end
+
+
 function variable_storage_indicator(pm::AbstractPowerModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
     if !relax
         z_storage = var(pm, nw)[:z_storage] = JuMP.@variable(pm.model,
@@ -1231,6 +1397,26 @@ function variable_storage_indicator(pm::AbstractPowerModel; nw::Int=nw_id_defaul
     end
 
     report && sol_component_value(pm, nw, :storage, :status, ids(pm, nw, :storage), z_storage)
+end
+
+
+function variable_ne_storage_indicator(pm::AbstractPowerModel; nw::Int=nw_id_default, relax::Bool=false, report::Bool=true)
+    if !relax
+        z_ne_storage = var(pm, nw)[:z_ne_storage] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_z_ne_storage",
+            binary = true,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "z_ne_storage_start", 1.0)
+        )
+    else
+        z_ne_storage = var(pm, nw)[:z_ne_storage] = JuMP.@variable(pm.model,
+            [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_z_ne_storage",
+            lower_bound = 0,
+            upper_bound = 1,
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "z__ne_storage_start", 1.0)
+        )
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :built, ids(pm, nw, :ne_storage), z_ne_storage)
 end
 
 

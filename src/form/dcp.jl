@@ -365,6 +365,19 @@ function constraint_storage_on_off(pm::AbstractAPLossLessModels, n::Int, i, pmin
 end
 
 ""
+function constraint_ne_storage_on_off(pm::AbstractAPLossLessModels, n::Int, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
+    z_ne_storage = var(pm, n, :z_ne_storage, i)
+    ps_ne = var(pm, n, :ps_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne <= z_ne_storage*pmax)
+    JuMP.@constraint(pm.model, ps_ne >= z_ne_storage*pmin)
+    JuMP.@constraint(pm.model, sc_ne <= z_ne_storage*charge_ub)
+    JuMP.@constraint(pm.model, sd_ne <= z_ne_storage*discharge_ub)
+end
+
+""
 function constraint_storage_losses(pm::AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
     ps = var(pm, n, :ps, i)
     sc = var(pm, n, :sc, i)
@@ -373,7 +386,14 @@ function constraint_storage_losses(pm::AbstractAPLossLessModels, n::Int, i, bus,
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss)
 end
 
+""
+function constraint_ne_storage_losses(pm::AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
+    ps_ne = var(pm, n, :ps_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
 
+    JuMP.@constraint(pm.model, ps_ne + (sd_ne - sc_ne) == p_loss)
+end
 
 ######## Network Flow Approximation ########
 

@@ -191,14 +191,20 @@ function constraint_switch_power_on_off(pm::AbstractPowerModel, n::Int, i, f_idx
     JuMP.@constraint(pm.model, qsw >= qsw_lb*z)
 end
 
-
-
 ""
 function constraint_storage_thermal_limit(pm::AbstractPowerModel, n::Int, i, rating)
     ps = var(pm, n, :ps, i)
     qs = var(pm, n, :qs, i)
 
     JuMP.@constraint(pm.model, ps^2 + qs^2 <= rating^2)
+end
+
+""
+function constraint_ne_storage_thermal_limit(pm::AbstractPowerModel, n::Int, i, rating)
+    ps_ne = var(pm, n, :ps_ne, i)
+    qs_ne = var(pm, n, :qs_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne^2 + qs_ne^2 <= rating^2)
 end
 
 ""
@@ -218,6 +224,49 @@ function constraint_storage_state(pm::AbstractPowerModel, n_1::Int, n_2::Int, i:
     se_1 = var(pm, n_1, :se, i)
 
     JuMP.@constraint(pm.model, se_2 - se_1 == time_elapsed*(charge_eff*sc_2 - sd_2/discharge_eff))
+end
+
+""
+function constraint_ne_storage_state_initial(pm::AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, time_elapsed)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+    se_ne = var(pm, n, :se_ne, i)
+
+    JuMP.@constraint(pm.model, se_ne - energy == time_elapsed*(charge_eff*sc_ne - sd_ne/discharge_eff))
+end
+
+""
+function constraint_ne_storage_state(pm::AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, time_elapsed)
+    sc_ne_2 = var(pm, n_2, :sc_ne, i)
+    sd_ne_2 = var(pm, n_2, :sd_ne, i)
+    se_ne_2 = var(pm, n_2, :se_ne, i)
+    se_ne_1 = var(pm, n_1, :se_ne, i)
+
+    JuMP.@constraint(pm.model, se_ne_2 - se_ne_1 == time_elapsed*(charge_eff*sc_ne_2 - sd_ne_2/discharge_eff))
+end
+
+""
+function constraint_ne_branch_state(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::Int)
+    z_branch_2 = var(pm, n_2, :branch_ne, i)
+    z_branch_1 = var(pm, n_1, :branch_ne, i)
+
+    JuMP.@constraint(pm.model, z_branch_1 == z_branch_2)
+end
+
+""
+function constraint_ne_gen_state(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::Int)
+    z_gen_2 = var(pm, n_2, :gen_ne, i)
+    z_gen_1 = var(pm, n_1, :gen_ne, i)
+
+    JuMP.@constraint(pm.model, z_gen_1 == z_gen_2)
+end
+
+""
+function constraint_ne_storage_built(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::Int)
+    z_ne_storage_2 = var(pm, n_2, :z_ne_storage, i)
+    z_ne_storage_1 = var(pm, n_1, :z_ne_storage, i)
+
+    JuMP.@constraint(pm.model, z_ne_storage_1 == z_ne_storage_2)
 end
 
 ""
@@ -241,6 +290,18 @@ function constraint_storage_complementarity_mi(pm::AbstractPowerModel, n::Int, i
 end
 
 
+function constraint_ne_storage_complementarity_mi(pm::AbstractPowerModel, n::Int, i, charge_ub, discharge_ub)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+    sc_on_ne = var(pm, n, :sc_on_ne, i)
+    sd_on_ne = var(pm, n, :sd_on_ne, i)
+
+    JuMP.@constraint(pm.model, sc_on_ne + sd_on_ne == 1)
+    JuMP.@constraint(pm.model, sc_on_ne*charge_ub >= sc_ne)
+    JuMP.@constraint(pm.model, sd_on_ne*discharge_ub >= sd_ne)
+end
+
+
 ""
 function constraint_storage_on_off(pm::AbstractPowerModel, n::Int, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
     z_storage = var(pm, n, :z_storage, i)
@@ -254,4 +315,19 @@ function constraint_storage_on_off(pm::AbstractPowerModel, n::Int, i, pmin, pmax
     JuMP.@constraint(pm.model, qs >= z_storage*qmin)
     JuMP.@constraint(pm.model, qsc <= z_storage*qmax)
     JuMP.@constraint(pm.model, qsc >= z_storage*qmin)
+end
+
+
+function constraint_ne_storage_on_off(pm::AbstractPowerModel, n::Int, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
+    z_ne_storage = var(pm, n, :z_ne_storage, i)
+    ps_ne = var(pm, n, :ps_ne, i)
+    qs_ne = var(pm, n, :qs_ne, i)
+    qsc_ne = var(pm, n, :qsc_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne <= z_ne_storage*pmax)
+    JuMP.@constraint(pm.model, ps_ne >= z_ne_storage*pmin)
+    JuMP.@constraint(pm.model, qs_ne <= z_ne_storage*qmax)
+    JuMP.@constraint(pm.model, qs_ne >= z_ne_storage*qmin)
+    JuMP.@constraint(pm.model, qsc_ne <= z_ne_storage*qmax)
+    JuMP.@constraint(pm.model, qsc_ne >= z_ne_storage*qmin)
 end

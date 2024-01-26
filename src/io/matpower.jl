@@ -151,7 +151,6 @@ function _parse_matpower_string(data_string::String)
         case["baseMVA"] = 1.0
     end
 
-
     if haskey(matlab_data, "mpc.bus")
         buses = []
         for bus_row in matlab_data["mpc.bus"]
@@ -362,6 +361,12 @@ function _matpower_to_powermodels!(mp_data::Dict{String,<:Any})
     if !haskey(pm_data, "storage")
         pm_data["storage"] = []
     end
+    if !haskey(pm_data, "ne_storage")
+        pm_data["ne_storage"] = []
+    end
+    if !haskey(pm_data, "ne_gen")
+        pm_data["ne_gen"] = []
+    end
     if !haskey(pm_data, "switch")
         pm_data["switch"] = []
     end
@@ -384,7 +389,7 @@ function _matpower_to_powermodels!(mp_data::Dict{String,<:Any})
     # use once available
     _IM.arrays_to_dicts!(pm_data)
 
-    for optional in ["dcline", "load", "shunt", "storage", "switch"]
+    for optional in ["dcline", "load", "shunt", "storage", "switch", "ne_gen", "ne_storage"]
         if length(pm_data[optional]) == 0
             pm_data[optional] = Dict{String,Any}()
         end
@@ -730,12 +735,6 @@ function export_matpower(io::IO, data::Dict{String,Any})
     for (idx,gen) in data["gen"]
         generators[gen["index"]] = gen
     end
-    ne_gen = Dict{Int, Dict}()
-    if haskey(data, "ne_gen")
-        for (idx,gen) in data["ne_gen"]
-            ne_gen[gen["index"]] = gen
-        end
-    end
     storage = Dict{Int, Dict}()
     for (idx,strg) in data["storage"]
         storage[strg["index"]] = strg
@@ -758,7 +757,19 @@ function export_matpower(io::IO, data::Dict{String,Any})
             ne_branches[branch["index"]] = branch
         end
     end
-
+    if haskey(data, "ne_gen")
+        ne_gen = Dict{Int, Dict}()
+        for (idx,gen) in data["ne_gen"]
+            ne_gen[gen["index"]] = gen
+        end
+    end
+    if haskey(data, "ne_storage")
+        ne_storage = Dict{Int, Dict}()
+        for (idx,strg) in data["ne_storage"]
+            ne_storage[gen["index"]] = strg
+        end
+    end
+    
     pd = Dict{Int, Float64}()
     qd = Dict{Int, Float64}()
     gs = Dict{Int, Float64}()
@@ -1047,33 +1058,6 @@ function export_matpower(io::IO, data::Dict{String,Any})
         println(io)
     end
 
-    # ne gen is not part of the matpower specs. However, it is treated as a special case by the matpower parser
-    if haskey(data, "ne_gen")
-        println(io, "%column_names%    bus    pg    qg    qmax    qmin    vg    mbase    gen_status    pmax    pmin construction_cost")
-        println(io, "mpc.ne_gen = [")
-        i = 1
-        for (idx,gen) in sort(collect(ne_gen), by=(x) -> x.first)
-            if idx != gen["index"]
-                Memento.warn(_LOGGER, "The index of the ne_gen does not match the matpower assigned index. Any data that uses gen indexes for reference is corrupted.");
-            end
-            println(io,
-                "\t", gen["bus"],
-                "\t", gen["pg"],
-                "\t", gen["qg"],
-                "\t", _get_default(gen, "qmax"),
-                "\t", _get_default(gen, "qmin"),
-                "\t", _get_default(gen, "mbase"),
-                "\t", _get_default(gen, "gen_status"),
-                "\t", _get_default(gen, "pmax"),
-                "\t", _get_default(gen, "pmin"),
-                "\t", _get_default(gen, "construction_cost"),
-            )
-            i = i+1
-        end
-        println(io, "];");
-        println(io)
-    end
-
     if all(haskey(bus, "name") for (i,bus) in buses)
         # Print the bus name data
         println(io, "%% bus names")
@@ -1115,6 +1099,11 @@ function export_matpower(io::IO, data::Dict{String,Any})
         _export_extra_data(io, data, "ne_gen", Set(["index", "source_id", "bus", "pg", "qg", "qmax", "qmin", "vg", "mbase", "gen_status", "pmax", "pmin", "construction_cost"]); postfix="_data")
     end
 
+    # Print the extra ne_storage data
+    if haskey(data, "ne_storage")
+        _export_extra_data(io, data, "ne_storage", Set(["index", "source_id", "storage_bus", "ps", "qs", "energy", "energy_rating", "charge_rating", "discharge_rating", "charge_efficiency", "discharge_efficiency", "thermal_rating", "qmin", "qmax", "r", "x", "p_loss", "q_loss", "status", "construction_cost"]); postfix="_data")
+    end
+    
     # print the extra load data
     _export_extra_data(io, data, "load", Set(["index", "source_id", "load_bus", "status", "qd", "pd"]); postfix="_data")
 
@@ -1123,7 +1112,7 @@ function export_matpower(io::IO, data::Dict{String,Any})
 
     # print the extra component data
     for (key, value) in data
-        if key != "bus" && key != "gen" && key != "branch" && key != "load" && key != "shunt" && key != "storage" && key != "dcline" && key != "switch" && key != "ne_branch" && key != "ne_gen" && key != "version" && key != "baseMVA" && key != "per_unit" && key != "name" && key != "source_type" && key != "source_version"
+        if key != "bus" && key != "gen" && key != "branch" && key != "load" && key != "shunt" && key != "storage" && key != "dcline" && key != "switch" && key != "ne_branch" && key != "ne_gen" && key != "ne_storage" && key != "version" && key != "baseMVA" && key != "per_unit" && key != "name" && key != "source_type" && key != "source_version"
             _export_extra_data(io, data, key)
         end
     end

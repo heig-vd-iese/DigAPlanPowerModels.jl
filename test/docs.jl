@@ -31,7 +31,7 @@
         #print(pm.model)
 
         @test JuMP.num_nonlinear_constraints(pm.model) == 12
-        @test JuMP.num_variables(pm.model) == 28
+        @test JuMP.num_variables(pm.model) == 31
 
         result = optimize_model!(pm, optimizer=JuMP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0))
 

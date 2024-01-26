@@ -202,3 +202,15 @@ function constraint_storage_losses(pm::AbstractBFAModel, n::Int, i, bus, r, x, p
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss)
     JuMP.@constraint(pm.model, qs == qsc + q_loss)
 end
+
+"Neglects the active and reactive loss terms associated with the squared current magnitude."
+function constraint_ne_storage_losses(pm::AbstractBFAModel, n::Int, i, bus, r, x, p_loss, q_loss)
+    ps_ne = var(pm, n, :ps_ne, i)
+    qs_ne = var(pm, n, :qs_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+    qsc_ne = var(pm, n, :qsc_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne + (sd_ne - sc_ne) == p_loss)
+    JuMP.@constraint(pm.model, qs_ne == qsc_ne + q_loss)
+end

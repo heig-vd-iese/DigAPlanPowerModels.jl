@@ -39,3 +39,19 @@ mpc.ne_branch = [
 	4	 3	 0.025	 0.75	 0.7	 50.0	 0.0	 0.0	 0.0	 0.0	 1	 -30.0	 30.0	 1;
 	4	 3	 0.025	 0.75	 0.7	 0.0	 0.0	 0.0	 0.0	 0.0	 1	 -30.0	 30.0	 1;
 ];
+
+% hours
+mpc.time_elapsed = 1.0
+mpc.tid = 24
+
+%% storage data
+%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status
+mpc.storage = [
+	 3	 0.0	 0.0	 20.0	 100.0	 50.0	 70.0	 0.8	 0.9	 100.0	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	 1;
+];
+
+%% ne_storage data
+%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status construction_cost
+mpc.ne_storage = [
+	 4	 0.0	 0.0	 20.0	 100.0	 50.0	 70.0	 0.8	 0.9	 100.0	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	 1	10;
+];

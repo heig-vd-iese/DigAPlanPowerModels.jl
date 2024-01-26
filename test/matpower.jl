@@ -213,7 +213,6 @@ end
 
     function test_mp_idempotent(filename::AbstractString, parse_file::Function)
         source_data = parse_file(filename)
-
         io = PipeBuffer()
         PowerModels.export_matpower(io, source_data)
         destination_data = PowerModels.parse_matpower(io)

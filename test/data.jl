@@ -34,7 +34,7 @@ TESTLOG = Memento.getlogger(PowerModels)
         output = sprint(PowerModels.summary, result["solution"])
 
         line_count = count(c -> c == '\n', output)
-        @test line_count >= 30 && line_count <= 40
+        @test line_count >= 35 && line_count <= 45
         @test occursin("baseMVA: 100.0", output)
         @test occursin("Table: bus", output)
         @test occursin("Table: gen", output)

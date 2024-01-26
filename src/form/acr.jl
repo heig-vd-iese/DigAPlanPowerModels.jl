@@ -230,6 +230,19 @@ function constraint_storage_losses(pm::AbstractACRModel, n::Int, i, bus, r, x, p
     JuMP.@NLconstraint(pm.model, qs == qsc + q_loss + x*(ps^2 + qs^2)/(vr^2 + vi^2))
 end
 
+""
+function constraint_ne_storage_losses(pm::AbstractACRModel, n::Int, i, bus, r, x, p_loss, q_loss)
+    vr = var(pm, n, :vr, bus)
+    vi = var(pm, n, :vi, bus)
+    ps_ne = var(pm, n, :ps_ne, i)
+    qs_ne = var(pm, n, :qs_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+    qsc_ne = var(pm, n, :qsc_ne, i)
+
+    JuMP.@NLconstraint(pm.model, ps_ne + (sd_ne - sc_ne) == p_loss + r*(ps_ne^2 + qs_ne^2)/(vr^2 + vi^2))
+    JuMP.@NLconstraint(pm.model, qs_ne == qsc_ne + q_loss + x*(ps_ne^2 + qs_ne^2)/(vr^2 + vi^2))
+end
 
 function constraint_current_limit_from(pm::AbstractACRModel, n::Int, f_idx, c_rating_a)
     l,i,j = f_idx

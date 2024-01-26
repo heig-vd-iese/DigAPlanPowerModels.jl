@@ -136,13 +136,14 @@ function constraint_ne_power_balance(pm::AbstractDCPModel, n::Int, i, bus_arcs, 
     end
 end
 
-function constraint_dnep_power_balance(pm::AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
+function constraint_dnep_power_balance(pm::AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_ne_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs, bus_ne_storage)
     p    = get(var(pm, n),    :p, Dict()); _check_var_keys(p, bus_arcs, "active power", "branch")
     pg   = get(var(pm, n),   :pg, Dict()); _check_var_keys(pg, bus_gens, "active power", "generator")
     ps   = get(var(pm, n),   :ps, Dict()); _check_var_keys(ps, bus_storage, "active power", "storage")
     psw  = get(var(pm, n),  :psw, Dict()); _check_var_keys(psw, bus_arcs_sw, "active power", "switch")
     p_ne = get(var(pm, n), :p_ne, Dict()); _check_var_keys(p_ne, bus_arcs_ne, "active power", "ne_branch")
     pg_ne = get(var(pm, n), :pg_ne, Dict()); _check_var_keys(pg_ne, bus_ne_gens, "active power", "ne_gen")
+    ps_ne = get(var(pm, n), :ps_ne, Dict()); _check_var_keys(ps_ne, bus_ne_storage, "active power", "ne_storage")
 
     cstr = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)
@@ -152,6 +153,7 @@ function constraint_dnep_power_balance(pm::AbstractDCPModel, n::Int, i::Int, bus
         sum(pg[g] for g in bus_gens)
         + sum(pg_ne[g] for g in bus_ne_gens)
         - sum(ps[s] for s in bus_storage)
+        - sum(ps_ne[s] for s in bus_ne_storage)
         - sum(pd for pd in values(bus_pd))
         - sum(gs for gs in values(bus_gs))*1.0^2
     )
@@ -328,14 +330,20 @@ function constraint_switch_thermal_limit(pm::AbstractActivePowerModel, n::Int, f
     JuMP.upper_bound(psw) >  rating && JuMP.set_upper_bound(psw,  rating)
 end
 
-
-
 ""
 function constraint_storage_thermal_limit(pm::AbstractActivePowerModel, n::Int, i, rating)
     ps = var(pm, n, :ps, i)
 
     JuMP.lower_bound(ps) < -rating && JuMP.set_lower_bound(ps, -rating)
     JuMP.upper_bound(ps) >  rating && JuMP.set_upper_bound(ps,  rating)
+end
+
+""
+function constraint_ne_storage_thermal_limit(pm::AbstractActivePowerModel, n::Int, i, rating)
+    ps_ne = var(pm, n, :ps_ne, i)
+
+    JuMP.lower_bound(ps_ne) < -rating && JuMP.set_lower_bound(ps_ne, -rating)
+    JuMP.upper_bound(ps_ne) >  rating && JuMP.set_upper_bound(ps_ne,  rating)
 end
 
 ""
@@ -355,6 +363,15 @@ function constraint_storage_losses(pm::AbstractActivePowerModel, n::Int, i, bus,
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss + r*ps^2)
 end
 
+""
+function constraint_ne_storage_losses(pm::AbstractActivePowerModel, n::Int, i, bus, r, x, p_loss, q_loss)
+    ps_ne = var(pm, n, :ps_ne, i)
+    sc_ne = var(pm, n, :sc_ne, i)
+    sd_ne = var(pm, n, :sd_ne, i)
+
+    JuMP.@constraint(pm.model, ps_ne + (sd_ne - sc_ne) == p_loss + r*ps_ne^2)
+end
+
 function constraint_storage_on_off(pm::AbstractActivePowerModel, n::Int, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
     z_storage = var(pm, n, :z_storage, i)
     ps = var(pm, n, :ps, i)
@@ -363,3 +380,10 @@ function constraint_storage_on_off(pm::AbstractActivePowerModel, n::Int, i, pmin
     JuMP.@constraint(pm.model, ps >= z_storage*pmin)
 end
 
+function constraint_ne_storage_on_off(pm::AbstractActivePowerModel, n::Int, i, pmin, pmax, qmin, qmax, charge_ub, discharge_ub)
+    z_ne_storage = var(pm, n, :z_ne_storage, i)
+    ps_ne = var(pm, n, :ps_ne, i)
+
+    JuMP.@constraint(pm.model, ps <= z_ne_storage*pmax)
+    JuMP.@constraint(pm.model, ps >= z_ne_storage*pmin)
+end
