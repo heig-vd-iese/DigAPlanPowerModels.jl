@@ -65,6 +65,31 @@ function variable_storage_current(pm::AbstractWConvexModels; nw::Int=nw_id_defau
     report && sol_component_value(pm, nw, :storage, :ccms, ids(pm, nw, :storage), ccms)
 end
 
+"do nothing by default but some formulations require this"
+function variable_ne_storage_current(pm::AbstractWConvexModels; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
+    ccms_ne = var(pm, nw)[:ccms_ne] = JuMP.@variable(pm.model,
+        [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_ccms_ne",
+        start = comp_start_value(ref(pm, nw, :ne_storage, i), "ccms_ne_start")
+    )
+
+    if bounded
+        bus = ref(pm, nw, :bus)
+        for (i, storage) in ref(pm, nw, :ne_storage)
+            ub = Inf
+            if haskey(storage, "thermal_rating")
+                sb = bus[storage["storage_bus"]]
+                ub = (storage["thermal_rating"]/sb["vmin"])^2
+            end
+
+            JuMP.set_lower_bound(ccms_ne[i], 0.0)
+            if !isinf(ub)
+                JuMP.set_upper_bound(ccms_ne[i], ub)
+            end
+        end
+    end
+
+    report && sol_component_value(pm, nw, :ne_storage, :ccms_ne, ids(pm, nw, :ne_storage), ccms_ne)
+end
 
 function constraint_theta_ref(pm::AbstractPolarModels, n::Int, i::Int)
     JuMP.@constraint(pm.model, var(pm, n, :va)[i] == 0)
@@ -493,7 +518,7 @@ end
 ""
 function constraint_ne_storage_losses(pm::AbstractWConvexModels, n::Int, i, bus, r, x, p_loss, q_loss)
     w = var(pm, n, :w, bus)
-    ccms = var(pm, n, :ccms, i)
+    ccms = var(pm, n, :ccms_ne, i)
     ps_ne = var(pm, n, :ps_ne, i)
     qs_ne = var(pm, n, :qs_ne, i)
     sc_ne = var(pm, n, :sc_ne, i)

@@ -424,6 +424,6 @@ function constraint_ne_storage_on_off(pm::AbstractActivePowerModel, n::Int, i, p
     z_ne_storage = var(pm, n, :z_ne_storage, i)
     ps_ne = var(pm, n, :ps_ne, i)
 
-    JuMP.@constraint(pm.model, ps <= z_ne_storage*pmax)
-    JuMP.@constraint(pm.model, ps >= z_ne_storage*pmin)
+    JuMP.@constraint(pm.model, ps_ne <= z_ne_storage*pmax)
+    JuMP.@constraint(pm.model, ps_ne >= z_ne_storage*pmin)
 end

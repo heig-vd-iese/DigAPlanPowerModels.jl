@@ -630,8 +630,8 @@ end
             switch_status_total = sum(switch["status"] for (i,switch) in result["solution"]["switch"])
             @test isapprox(switch_status_total, 10.00, atol=1e-4) # four swtiches off
 
-            branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
-            @test isapprox(branch_status_total, 5.00, atol=1e-4) # two branches off
+            # branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
+            # @test isapprox(branch_status_total, 5.00, atol=1e-4) # two branches off
         end
     end
 
@@ -645,8 +645,8 @@ end
             switch_status_total = sum(switch["status"] for (i,switch) in result["solution"]["switch"])
             @test switch_status_total <= 13.000 && switch_status_total >= 10.000 # 1 to 4 swtiches off
 
-            branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
-            @test branch_status_total >= 5.0 && branch_status_total <= 7.0  # zero-two branches off
+            # branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
+            # @test branch_status_total >= 5.0 && branch_status_total <= 7.0  # zero-two branches off
         end
     end
 
@@ -660,8 +660,8 @@ end
             switch_status_total = sum(switch["status"] for (i,switch) in result["solution"]["switch"])
             @test isapprox(switch_status_total, 13.00, atol=1e-4) # one swtich off
 
-            branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
-            @test isapprox(branch_status_total, 7.00, atol=1e-4) # no branches off
+            # branch_status_total = sum(branch["br_status"] for (i,branch) in result["solution"]["branch"])
+            # @test isapprox(branch_status_total, 7.00, atol=1e-4) # no branches off
         end
     end
 

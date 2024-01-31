@@ -238,7 +238,47 @@ TESTLOG = Memento.getlogger(PowerModels)
 
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["objective"], 2.501; atol = 1e-3)
-
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 1.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"]; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["3"]["ne_storage"]["2"]["built"]; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["3"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["4"]["ne_storage"]["2"]["built"]; atol = 1e-3)
         @test InfrastructureModels.ismultinetwork(mn_data) == InfrastructureModels.ismultinetwork(result["solution"])
     end
+
+    @testset "test dc polar dnep" begin
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
+        result = PowerModels.solve_dnep_mn_strg(mn_data, DCPPowerModel, minlp_solver)
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["objective"], 1.001; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 1.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 0.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"]; atol = 1e-3)
+    end
+
+
+    @testset "5-bus case with matpower DCMP model and DNEP" begin
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
+        result = PowerModels.solve_dnep_mn_strg(mn_data, DCMPPowerModel, minlp_solver)
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["objective"], 1.001; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 1.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 0.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"]; atol = 1e-3)
+
+    end
+    
+    
+    @testset "test dc-losses dnep with storage" begin
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
+        result = PowerModels.solve_dnep_mn_strg(mn_data, DCPLLPowerModel, minlp_solver)
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["objective"], 1.001; atol = 1e-2)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 1.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 0.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"]; atol = 1e-3)
+
+    end
+
 end
