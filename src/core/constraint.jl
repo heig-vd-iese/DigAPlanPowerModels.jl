@@ -250,7 +250,8 @@ function constraint_ne_branch_state(pm::AbstractPowerModel, i::Int, n_1::Int, n_
     z_branch_2 = var(pm, n_2, :branch_ne, i)
     z_branch_1 = var(pm, n_1, :branch_ne, i)
 
-    JuMP.@constraint(pm.model, z_branch_1 == z_branch_2)
+    JuMP.@constraint(pm.model, z_branch_1 - z_branch_2 <= 1e-2)
+    JuMP.@constraint(pm.model, z_branch_2 - z_branch_1 <= 1e-2)
 end
 
 ""
@@ -258,7 +259,8 @@ function constraint_ne_gen_state(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::
     z_gen_2 = var(pm, n_2, :gen_ne, i)
     z_gen_1 = var(pm, n_1, :gen_ne, i)
 
-    JuMP.@constraint(pm.model, z_gen_1 == z_gen_2)
+    JuMP.@constraint(pm.model, z_gen_1 - z_gen_2 <= 1e-2)
+    JuMP.@constraint(pm.model, z_gen_2 - z_gen_1 <= 1e-2)
 end
 
 ""
@@ -266,7 +268,8 @@ function constraint_ne_storage_built(pm::AbstractPowerModel, i::Int, n_1::Int, n
     z_ne_storage_2 = var(pm, n_2, :z_ne_storage, i)
     z_ne_storage_1 = var(pm, n_1, :z_ne_storage, i)
 
-    JuMP.@constraint(pm.model, z_ne_storage_1 == z_ne_storage_2)
+    JuMP.@constraint(pm.model, z_ne_storage_1 - z_ne_storage_2 <= 1e-2)
+    JuMP.@constraint(pm.model, z_ne_storage_2 - z_ne_storage_1 <= 1e-2)
 end
 
 ""

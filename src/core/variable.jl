@@ -1320,7 +1320,7 @@ function variable_ne_storage_power_real_on_off(pm::AbstractPowerModel; nw::Int=n
         start = comp_start_value(ref(pm, nw, :ne_storage, i), "ps_ne_start")
     )
 
-    inj_lb_ne, inj_ub_ne = ref_calc_ne_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
+    inj_lb_ne, inj_ub_ne = ref_calc_storage_injection_bounds(ref(pm, nw, :ne_storage), ref(pm, nw, :bus))
 
     for i in ids(pm, nw, :ne_storage)
         if !isinf(inj_lb_ne[i])
@@ -1412,7 +1412,7 @@ function variable_ne_storage_indicator(pm::AbstractPowerModel; nw::Int=nw_id_def
             [i in ids(pm, nw, :ne_storage)], base_name="$(nw)_z_ne_storage",
             lower_bound = 0,
             upper_bound = 1,
-            start = comp_start_value(ref(pm, nw, :ne_storage, i), "z__ne_storage_start", 1.0)
+            start = comp_start_value(ref(pm, nw, :ne_storage, i), "z_ne_storage_start", 1.0)
         )
     end
 

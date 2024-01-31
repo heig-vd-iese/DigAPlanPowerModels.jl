@@ -78,7 +78,7 @@ end
 
 
 function solve_dnep_mn_strg(file, model_type::Type, optimizer; kwargs...)
-    return solve_model(file, model_type, optimizer, build_dnep_mn_strg; ref_extensions=[ref_add_on_off_va_bounds!,ref_add_ne!], kwargs...)
+    return solve_model(file, model_type, optimizer, build_dnep_mn_strg; ref_extensions=[ref_add_on_off_va_bounds!,ref_add_ne!], multinetwork=true, kwargs...)
 end
 
 "the general form of the dnep optimization model"
@@ -154,9 +154,10 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
     end
 
     network_ids = sort(collect(nw_ids(pm)))
+    network_id_first = network_ids[1]
     
-    if haskey(ref(pm, nw_id_default), :tid)
-        tid = ref(pm, nw_id_default, :tid)
+    if haskey(ref(pm, network_id_first), :tid)
+        tid = ref(pm, network_id_first, :tid)
     else
         tid = 24
     end
@@ -172,7 +173,7 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
         for i in ids(pm, :ne_storage, nw=n_1)
             constraint_ne_storage_state(pm, i, nw=n_1)
         end
-        for n_2 in network_ids[scen_fi*tid+2:scen_fi+tid]
+        for n_2 in network_ids[scen_fi*tid+2:min(scen_fi+tid, length(network_ids))]
             for i in ids(pm, :storage, nw=n_2)
                 constraint_storage_state(pm, i, n_1, n_2)
             end
@@ -205,10 +206,19 @@ end
 "Cost of building branches and new generators"
 function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
     
-    if haskey(ref(pm, nw_id_default), :power_flex_price)
-        power_flex_price = ref(pm, nw_id_default, :power_flex_price)
+    network_ids = sort(collect(nw_ids(pm)))
+    network_id_first = network_ids[1]
+
+    if haskey(ref(pm, network_id_first), :power_flex_price)
+        power_flex_price = ref(pm, network_id_first, :power_flex_price)
     else
         power_flex_price = 1
+    end
+    
+    if haskey(ref(pm, network_id_first), :tid)
+        tid = ref(pm, network_id_first, :tid)
+    else
+        tid = 24
     end
     
     network_ids = sort(collect(nw_ids(pm)))
@@ -242,7 +252,7 @@ function _ref_add_ne!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 
     ref[:ne_gen] = Dict(x for x in ref[:ne_gen] if (1 != pm_component_status_inactive["ne_gen"] && x.second["bus"] in keys(ref[:bus])))
 
-    ref[:ne_storage] = Dict(x for x in ref[:ne_storage] if (1 != pm_component_status_inactive["ne_storage"] && x.second["bus"] in keys(ref[:bus])))
+    ref[:ne_storage] = Dict(x for x in ref[:ne_storage] if (1 != pm_component_status_inactive["ne_storage"] && x.second["storage_bus"] in keys(ref[:bus])))
 
     ref[:ne_arcs_from] = [(i,branch["f_bus"],branch["t_bus"]) for (i,branch) in ref[:ne_branch]]
     ref[:ne_arcs_to]   = [(i,branch["t_bus"],branch["f_bus"]) for (i,branch) in ref[:ne_branch]]

@@ -134,6 +134,7 @@ const pm_component_status_inactive = Dict(
     "shunt" => 0,
     "gen" => 0,
     "ne_gen" => 0,
+    "ne_storage" => 0,
     "storage" => 0,
     "switch" => 0,
     "branch" => 0,

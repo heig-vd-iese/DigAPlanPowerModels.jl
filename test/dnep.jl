@@ -199,3 +199,27 @@ end
         end
     end
 end
+
+TESTLOG = Memento.getlogger(PowerModels)
+@testset "test denp multi networks" begin
+    @testset "test solve_opf with multinetwork data" begin
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
+        @test_throws(TESTLOG, ErrorException, PowerModels.solve_opf(mn_data, ACPPowerModel, minlp_solver))
+    end
+
+    @testset "test solve_mn_opf with single-network data" begin
+        @test_throws(TESTLOG, ErrorException, PowerModels.solve_mn_opf("../test/data/matpower/case5_dnep_mn_strg.m", ACPPowerModel, nlp_solver))
+    end
+
+    @testset "test multi-network solution" begin
+        # test case where generator status is 1 but the gen_bus status is 0
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
+        result = PowerModels.solve_dnep_mn_strg(mn_data, ACPPowerModel, minlp_solver)
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["objective"], 1.001; atol = 1e-4)
+
+        @test InfrastructureModels.ismultinetwork(mn_data) == InfrastructureModels.ismultinetwork(result["solution"])
+    end
+
+end
