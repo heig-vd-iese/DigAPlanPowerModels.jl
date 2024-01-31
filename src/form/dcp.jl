@@ -332,6 +332,24 @@ function constraint_thermal_limit_to(pm::AbstractAPLossLessModels, n::Int, t_idx
 end
 
 "nothing to do, this model is symetric"
+function constraint_thermal_limit_to_dnep(pm::AbstractAPLossLessModels, n::Int, t_idx, rate_a)
+    # NOTE correct?
+    l,i,j = t_idx
+    p_fr = var(pm, n, :p, (l,j,i))
+    rate_add = var(pm, n, :rate_add, l)
+    if isa(p_fr, JuMP.VariableRef) && JuMP.has_upper_bound(p_fr)
+        cstr = JuMP.UpperBoundRef(p_fr)
+    else
+        p_to = var(pm, n, :p, t_idx)
+        cstr = JuMP.@constraint(pm.model, p_to <= rate_a * (rate_add + 1))
+    end
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :branch, t_idx[1])[:mu_sm_to] = cstr
+    end
+end
+
+"nothing to do, this model is symetric"
 function constraint_ohms_yt_to_on_off(pm::AbstractAPLossLessModels, n::Int, i, f_bus, t_bus, f_idx, t_idx, g, b, g_to, b_to, tr, ti, tm, vad_min, vad_max)
 end
 

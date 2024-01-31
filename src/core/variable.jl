@@ -466,6 +466,14 @@ function variable_branch_power(pm::AbstractPowerModel; kwargs...)
 end
 
 
+""
+function variable_branch_power_dnep(pm::AbstractPowerModel; kwargs...)
+    variable_branch_power_real(pm; kwargs...)
+    variable_branch_power_imaginary(pm; kwargs...)
+    variable_branch_rate_add(pm; kwargs...)
+end
+
+
 "variable: `p[l,i,j]` for `(l,i,j)` in `arcs`"
 function variable_branch_power_real(pm::AbstractPowerModel; nw::Int=nw_id_default, bounded::Bool=true, report::Bool=true)
     p = var(pm, nw)[:p] = JuMP.@variable(pm.model,
@@ -1494,7 +1502,18 @@ function variable_branch_indicator(pm::AbstractPowerModel; nw::Int=nw_id_default
         )
     end
 
-    report && sol_component_value(pm, nw, :branch, :br_status, ids(pm, nw, :branch), z_branch)
+    report && (pm, nw, :branch, :br_status, ids(pm, nw, :branch), z_branch)
+end
+
+""
+function variable_branch_rate_add(pm::AbstractPowerModel; nw::Int=nw_id_default, report::Bool=true)
+    rate_add = var(pm, nw)[:rate_add] = JuMP.@variable(pm.model,
+        [l in ids(pm, nw, :branch)], base_name="$(nw)_rate_add",
+        lower_bound = 0.0,
+        upper_bound = 10.0,
+        start = comp_start_value(ref(pm, nw, :branch, l), "rate_add_start", 1.0)
+    )
+    report && sol_component_value(pm, nw, :branch, :rate_add, ids(pm, nw, :branch), rate_add)
 end
 
 "variable: `0 <= branch_ne[l] <= 1` for `l` in `branch`es"

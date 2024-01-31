@@ -86,7 +86,7 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
     for (n, network) in nws(pm)
         variable_bus_voltage(pm, nw=n)
         variable_gen_power(pm, nw=n)
-        variable_branch_power(pm, nw=n)
+        variable_branch_power_dnep(pm, nw=n)
         variable_storage_power_mi(pm, nw=n)
 
         variable_ne_branch_indicator(pm, nw=n)
@@ -122,8 +122,8 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
 
             constraint_voltage_angle_difference(pm, i, nw=n)
 
-            constraint_thermal_limit_from(pm, i, nw=n)
-            constraint_thermal_limit_to(pm, i, nw=n)
+            constraint_thermal_limit_from_dnep(pm, i, nw=n)
+            constraint_thermal_limit_to_dnep(pm, i, nw=n)
         end
 
         for i in ids(pm, :gen, nw=n)
@@ -214,6 +214,12 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
     else
         power_flex_price = 1
     end
+
+    if haskey(ref(pm, network_id_first), :new_cable_cost)
+        new_cable_cost = ref(pm, network_id_first, :new_cable_cost)
+    else
+        new_cable_cost = 1e4
+    end
     
     if haskey(ref(pm, network_id_first), :tid)
         tid = ref(pm, network_id_first, :tid)
@@ -230,7 +236,8 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) +
             sum(storage["construction_cost"]*var(pm, n, :z_ne_storage, i) for (i,storage) in nw_ref[:ne_storage]) +
             sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
-            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
+            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen]) + 
+            sum(new_cable_cost*var(pm, n, :rate_add, i) for (i,branch) in nw_ref[:branch])
         for (n, nw_ref) in nws(pm)) / number_scenarios
     )
 end

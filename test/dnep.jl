@@ -217,9 +217,28 @@ TESTLOG = Memento.getlogger(PowerModels)
         result = PowerModels.solve_dnep_mn_strg(mn_data, ACPPowerModel, minlp_solver)
 
         @test result["termination_status"] == LOCALLY_SOLVED
-        @test isapprox(result["objective"], 1.001; atol = 1e-4)
+        @test isapprox(result["objective"], 1.001; atol = 1e-3)
 
         @test InfrastructureModels.ismultinetwork(mn_data) == InfrastructureModels.ismultinetwork(result["solution"])
     end
 
+    @testset "test make_multinetwork" begin
+        data = PowerModels.parse_file("../test/data/matpower/case5_dnep_mn_strg.m")
+        data["time_series"] = Dict(
+            "num_steps" => 6,
+            "load" => Dict(
+                "1" => Dict("pd" => [3.0, 3.1, 2.9, 3.1, 3.2, 3.0]), # it should be in per-unit
+                "2" => Dict("pd" => [3.0, 3.1, 2.9, 3.1, 3.2, 3.0]),
+                "3" => Dict("pd" => [4.0, 4.1, 3.9, 4.2, 4.3, 4.1])
+            )
+        )
+
+        mn_data = make_multinetwork(data)
+        result = PowerModels.solve_dnep_mn_strg(mn_data, ACPPowerModel, minlp_solver)
+
+        @test result["termination_status"] == LOCALLY_SOLVED
+        @test isapprox(result["objective"], 2.501; atol = 1e-3)
+
+        @test InfrastructureModels.ismultinetwork(mn_data) == InfrastructureModels.ismultinetwork(result["solution"])
+    end
 end

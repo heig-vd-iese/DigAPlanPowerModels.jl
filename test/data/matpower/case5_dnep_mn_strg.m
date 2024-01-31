@@ -1,9 +1,10 @@
 % tests extra data needed for tnep problems
 
-function mpc = case5_tnep
+function mpc = case5_dnep_mn_strg
 mpc.version = '2';
 mpc.baseMVA = 100.0;
 mpc.power_flex_price = 0.0001;
+mpc.new_cable_cost = 10.0;
 
 %% bus data
 %	bus_i	type	Pd	Qd	Gs	Bs	area	Vm	Va	baseKV	zone	Vmax	Vmin
@@ -60,7 +61,7 @@ mpc.ne_branch = [
 
 % hours
 mpc.time_elapsed = 1.0
-mpc.tid = 12
+mpc.tid = 3
 
 %% storage data
 %   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status

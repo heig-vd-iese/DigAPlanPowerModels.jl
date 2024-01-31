@@ -229,6 +229,32 @@ function constraint_thermal_limit_to(pm::AbstractIVRModel, n::Int, t_idx, rate_a
     JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crt^2 + cit^2) <= rate_a^2)
 end
 
+"`p[f_idx]^2 + q[f_idx]^2 <= rate_a^2`"
+function constraint_thermal_limit_from_dnep(pm::AbstractIVRModel, n::Int, f_idx, rate_a)
+    (l, f_bus, t_bus) = f_idx
+
+    vr = var(pm, n, :vr, f_bus)
+    vi = var(pm, n, :vi, f_bus)
+    crf = var(pm, n, :cr, f_idx)
+    cif = var(pm, n, :ci, f_idx)
+    rate_add = var(pm, n, :rate_add, l)
+
+    JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crf^2 + cif^2) <= rate_a^2*(rate_add + 1))
+end
+
+"`p[t_idx]^2 + q[t_idx]^2 <= rate_a^2`"
+function constraint_thermal_limit_to_dnep(pm::AbstractIVRModel, n::Int, t_idx, rate_a)
+    (l, t_bus, f_bus) = t_idx
+
+    vr = var(pm, n, :vr, t_bus)
+    vi = var(pm, n, :vi, t_bus)
+    crt = var(pm, n, :cr, t_idx)
+    cit = var(pm, n, :ci, t_idx)
+    rate_add = var(pm, n, :rate_add, l)
+
+    JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crt^2 + cit^2) <= rate_a^2*(rate_add + 1))
+end
+
 """
 Bounds the current magnitude at the from side of a branch
 """

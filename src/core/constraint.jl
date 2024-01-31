@@ -29,6 +29,27 @@ function constraint_thermal_limit_to(pm::AbstractPowerModel, n::Int, t_idx, rate
     JuMP.@constraint(pm.model, p_to^2 + q_to^2 <= rate_a^2)
 end
 
+# thermal limit constraint with modification of cables
+""
+function constraint_thermal_limit_from_dnep(pm::AbstractPowerModel, n::Int, f_idx, rate_a)
+    (l, f_bus, t_bus) = f_idx
+    p_fr = var(pm, n, :p, f_idx)
+    q_fr = var(pm, n, :q, f_idx)
+    rate_add = var(pm, n, :rate_add, l)
+
+    JuMP.@constraint(pm.model, p_fr^2 + q_fr^2 <= rate_a^2 * (rate_add + 1))
+end
+
+""
+function constraint_thermal_limit_to_dnep(pm::AbstractPowerModel, n::Int, t_idx, rate_a)
+    (l, t_bus, f_bus) = t_idx
+    p_to = var(pm, n, :p, t_idx)
+    q_to = var(pm, n, :q, t_idx)
+    rate_add = var(pm, n, :rate_add, l)
+
+    JuMP.@constraint(pm.model, p_to^2 + q_to^2 <= rate_a^2 * (rate_add + 1))
+end
+
 "`[rate_a, p[f_idx], q[f_idx]] in SecondOrderCone`"
 function constraint_thermal_limit_from(pm::AbstractConicModels, n::Int, f_idx, rate_a)
     p_fr = var(pm, n, :p, f_idx)

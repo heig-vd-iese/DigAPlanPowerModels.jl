@@ -230,6 +230,46 @@ function constraint_thermal_limit_to(pm::AbstractActivePowerModel, n::Int, t_idx
     end
 end
 
+"`-rate_a- rate_add[f_idx] <= p[f_idx] <= rate_a + rate_add[f_idx]`"
+function constraint_thermal_limit_from_dnep(pm::AbstractActivePowerModel, n::Int, f_idx, rate_a)
+    (l, f_bus, t_bus) = f_idx
+    p_fr = var(pm, n, :p, f_idx)
+    rate_add = var(pm, n, :rate_add, l)
+    if isa(p_fr, JuMP.VariableRef) && JuMP.has_lower_bound(p_fr)
+        cstr = JuMP.LowerBoundRef(p_fr)
+        JuMP.lower_bound(p_fr) < -rate_a && JuMP.set_lower_bound(p_fr, -rate_a)
+        if JuMP.has_upper_bound(p_fr)
+            JuMP.upper_bound(p_fr) > rate_a && JuMP.set_upper_bound(p_fr, rate_a)
+        end
+    else
+        cstr = JuMP.@constraint(pm.model, p_fr <= rate_a * (rate_add + 1))
+    end
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :branch, f_idx[1])[:mu_sm_fr] = cstr
+    end
+end
+
+""
+function constraint_thermal_limit_to_dnep(pm::AbstractActivePowerModel, n::Int, t_idx, rate_a)
+    (l, t_bus, f_bus) = t_idx
+    p_to = var(pm, n, :p, t_idx)
+    rate_add = var(pm, n, :rate_add, l)
+    if isa(p_to, JuMP.VariableRef) && JuMP.has_lower_bound(p_to)
+        cstr = JuMP.LowerBoundRef(p_to)
+        JuMP.lower_bound(p_to) < -rate_a && JuMP.set_lower_bound(p_to, -rate_a)
+        if JuMP.has_upper_bound(p_to)
+            JuMP.upper_bound(p_to) >  rate_a && JuMP.set_upper_bound(p_to,  rate_a)
+        end
+    else
+        cstr = JuMP.@constraint(pm.model, p_to <= rate_a * (rate_add + 1))
+    end
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :branch, t_idx[1])[:mu_sm_to] = cstr
+    end
+end
+
 
 ""
 function constraint_current_limit_from(pm::AbstractActivePowerModel, n::Int, f_idx, c_rating_a)
