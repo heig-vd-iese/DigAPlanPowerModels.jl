@@ -195,6 +195,9 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
         for i in ids(pm, :ne_storage, nw=n_2)
             constraint_ne_storage_built(pm, i, n_1, n_2)
         end
+        for i in ids(pm, :branch, nw=n_2)
+            constraint_branch_rate_add(pm, i, n_1, n_2)
+        end
         n_1 = n_2
     end
 

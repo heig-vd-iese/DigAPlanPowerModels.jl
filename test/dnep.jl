@@ -201,7 +201,7 @@ end
 end
 
 TESTLOG = Memento.getlogger(PowerModels)
-@testset "test denp multi networks" begin
+@testset "test dnep multi networks" begin
     @testset "test solve_opf with multinetwork data" begin
         mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m")
         @test_throws(TESTLOG, ErrorException, PowerModels.solve_opf(mn_data, ACPPowerModel, minlp_solver))
@@ -281,4 +281,19 @@ TESTLOG = Memento.getlogger(PowerModels)
 
     end
 
+end
+
+@testset "test relaxation and get dual variables" begin
+    @testset "dnep with relaxation" begin
+        data = PowerModels.parse_file("../test/data/matpower/case3_dnep.m")
+        calc_thermal_limits!(data)
+        result = solve_dnep(data, ACPPowerModel, nlp_solver, relax_integrality=true, setting = Dict("output" => Dict("duals" => true)))
+        @test haskey(result["solution"]["bus"]["3"], "lam_kcl_r")
+    end
+
+    @testset "dnep_mn_strg with relaxation" begin
+        mn_data = build_mn_data("../test/data/matpower/case5_dnep_mn_strg.m");
+        result = PowerModels.solve_dnep_mn_strg(mn_data, ACPPowerModel, nlp_solver, relax_integrality=true, setting = Dict("output" => Dict("duals" => true)))
+        @test haskey(result["solution"]["nw"]["1"]["bus"]["1"], "lam_kcl_i")
+    end
 end

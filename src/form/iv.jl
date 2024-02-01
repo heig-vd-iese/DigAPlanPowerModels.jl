@@ -239,7 +239,11 @@ function constraint_thermal_limit_from_dnep(pm::AbstractIVRModel, n::Int, f_idx,
     cif = var(pm, n, :ci, f_idx)
     rate_add = var(pm, n, :rate_add, l)
 
-    JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crf^2 + cif^2) <= rate_a^2*(rate_add + 1))
+    cstr = JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crf^2 + cif^2) <= rate_a^2*(rate_add + 1))
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :branch, f_idx[1])[:mu_sm_fr] = cstr
+    end
 end
 
 "`p[t_idx]^2 + q[t_idx]^2 <= rate_a^2`"
@@ -252,7 +256,11 @@ function constraint_thermal_limit_to_dnep(pm::AbstractIVRModel, n::Int, t_idx, r
     cit = var(pm, n, :ci, t_idx)
     rate_add = var(pm, n, :rate_add, l)
 
-    JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crt^2 + cit^2) <= rate_a^2*(rate_add + 1))
+    cstr = JuMP.@NLconstraint(pm.model, (vr^2 + vi^2)*(crt^2 + cit^2) <= rate_a^2*(rate_add + 1))
+
+    if _IM.report_duals(pm)
+        sol(pm, n, :branch, t_idx[1])[:mu_sm_to] = cstr
+    end
 end
 
 """

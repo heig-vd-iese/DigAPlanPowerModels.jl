@@ -208,7 +208,7 @@ function constraint_ne_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus_a
     p_ne = get(var(pm, n), :p_ne, Dict()); _check_var_keys(p_ne, bus_arcs_ne, "active power", "ne_branch")
     q_ne = get(var(pm, n), :q_ne, Dict()); _check_var_keys(q_ne, bus_arcs_ne, "reactive power", "ne_branch")
 
-    JuMP.@constraint(pm.model,
+    cstr_p = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)
         + sum(p_dc[a_dc] for a_dc in bus_arcs_dc)
         + sum(psw[a_sw] for a_sw in bus_arcs_sw)
@@ -219,7 +219,7 @@ function constraint_ne_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus_a
         - sum(pd for pd in values(bus_pd))
         - sum(gs for gs in values(bus_gs))*vm^2
     )
-    JuMP.@constraint(pm.model,
+    cstr_q = JuMP.@constraint(pm.model, 
         sum(q[a] for a in bus_arcs)
         + sum(q_dc[a_dc] for a_dc in bus_arcs_dc)
         + sum(qsw[a_sw] for a_sw in bus_arcs_sw)
@@ -230,6 +230,10 @@ function constraint_ne_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus_a
         - sum(qd for qd in values(bus_qd))
         + sum(bs for bs in values(bus_bs))*vm^2
     )
+    if _IM.report_duals(pm)
+        sol(pm, n, :bus, i)[:lam_kcl_r] = cstr_p
+        sol(pm, n, :bus, i)[:lam_kcl_i] = cstr_q
+    end
 end
 
 
@@ -251,7 +255,7 @@ function constraint_dnep_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus
     ps_ne = get(var(pm, n), :ps_ne, Dict()); _check_var_keys(ps_ne, bus_ne_storage, "active power", "ne_storage")
     qs_ne = get(var(pm, n), :qs_ne, Dict()); _check_var_keys(qs_ne, bus_ne_storage, "reactive power", "ne_storage")
 
-    JuMP.@constraint(pm.model,
+    cstr_p = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)
         + sum(psw[a_sw] for a_sw in bus_arcs_sw)
         + sum(p_ne[a] for a in bus_arcs_ne)
@@ -263,7 +267,7 @@ function constraint_dnep_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus
         - sum(pd for pd in values(bus_pd))
         - sum(gs for gs in values(bus_gs))*vm^2
     )
-    JuMP.@constraint(pm.model,
+    cstr_q = JuMP.@constraint(pm.model,
         sum(q[a] for a in bus_arcs)
         + sum(qsw[a_sw] for a_sw in bus_arcs_sw)
         + sum(q_ne[a] for a in bus_arcs_ne)
@@ -275,6 +279,10 @@ function constraint_dnep_power_balance(pm::AbstractACPModel, n::Int, i::Int, bus
         - sum(qd for qd in values(bus_qd))
         + sum(bs for bs in values(bus_bs))*vm^2
     )
+    if _IM.report_duals(pm)
+        sol(pm, n, :bus, i)[:lam_kcl_r] = cstr_p
+        sol(pm, n, :bus, i)[:lam_kcl_i] = cstr_q
+    end
 end
 
 
