@@ -11,7 +11,7 @@ end
 function check_ne_keys(sol)
     branch = collect(sol["branch"])[1].second
     ne_brnach = collect(sol["ne_branch"])[1].second
-    @test all(haskey(ne_brnach, k) for k in keys(branch))
+    @test all(haskey(ne_brnach, k) for k in keys(branch) if k != "rate_add")
     gen = collect(sol["gen"])[1].second
     ne_gen = collect(sol["ne_gen"])[1].second
     @test all(haskey(ne_gen, k) for k in keys(gen))

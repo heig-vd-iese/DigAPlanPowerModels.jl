@@ -1510,7 +1510,7 @@ function variable_branch_rate_add(pm::AbstractPowerModel; nw::Int=nw_id_default,
     rate_add = var(pm, nw)[:rate_add] = JuMP.@variable(pm.model,
         [l in ids(pm, nw, :branch)], base_name="$(nw)_rate_add",
         lower_bound = 0.0,
-        upper_bound = 10.0,
+        upper_bound = 100.0,
         start = comp_start_value(ref(pm, nw, :branch, l), "rate_add_start", 1.0)
     )
     report && sol_component_value(pm, nw, :branch, :rate_add, ids(pm, nw, :branch), rate_add)

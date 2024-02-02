@@ -11,7 +11,7 @@ end
 function build_dnep(pm::AbstractPowerModel)
     variable_bus_voltage(pm)
     variable_gen_power(pm)
-    variable_branch_power(pm)
+    variable_branch_power_dnep(pm)
 
     variable_ne_branch_indicator(pm)
     variable_ne_branch_power(pm)
@@ -39,8 +39,8 @@ function build_dnep(pm::AbstractPowerModel)
 
         constraint_voltage_angle_difference(pm, i)
 
-        constraint_thermal_limit_from(pm, i)
-        constraint_thermal_limit_to(pm, i)
+        constraint_thermal_limit_from_dnep(pm, i)
+        constraint_thermal_limit_to_dnep(pm, i)
     end
 
     for i in ids(pm, :ne_branch)
@@ -66,12 +66,23 @@ end
 
 "Cost of building branches and new generators"
 function objective_dnep_cost(pm::AbstractPowerModel)
+    if haskey(ref(pm, nw_id_default), :power_flex_price)
+        power_flex_price = ref(pm, nw_id_default, :power_flex_price)
+    else
+        power_flex_price = 1
+    end
+    if haskey(ref(pm, nw_id_default), :new_cable_cost)
+        new_cable_cost = ref(pm, nw_id_default, :new_cable_cost)
+    else
+        new_cable_cost = 1e4
+    end
     return JuMP.@objective(pm.model, Min,
         sum(
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) + 
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) + 
-            sum(ref(pm, nw_id_default, :power_flex_price)*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
-            sum(ref(pm, nw_id_default, :power_flex_price)*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
+            sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
+            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen]) + 
+            sum(new_cable_cost*var(pm, n, :rate_add, i) for (i,branch) in nw_ref[:branch])
         for (n, nw_ref) in nws(pm))
     )
 end
