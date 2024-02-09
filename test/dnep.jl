@@ -275,8 +275,8 @@ TESTLOG = Memento.getlogger(PowerModels)
 
         @test result["termination_status"] == LOCALLY_SOLVED
         @test isapprox(result["objective"], 1.001; atol = 1e-2)
-        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 1.0; atol = 1e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 0.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 0.0; atol = 1e-3)
+        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"], 1.0; atol = 1e-3)
         @test isapprox(result["solution"]["nw"]["1"]["ne_storage"]["2"]["built"], result["solution"]["nw"]["2"]["ne_storage"]["2"]["built"]; atol = 1e-3)
 
     end

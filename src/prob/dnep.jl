@@ -71,11 +71,22 @@ function objective_dnep_cost(pm::AbstractPowerModel)
     else
         power_flex_price = 1
     end
+
+    gen_except_extgrid = deepcopy(ref(pm, nw_id_default, :gen))
+    gen_extgrid = deepcopy(ref(pm, nw_id_default, :gen))
+    for (i, gen) in ref(pm, nw_id_default, :gen)
+        if ref(pm, nw_id_default, :bus, gen["gen_bus"])["bus_type"] == 3
+            pop!(gen_except_extgrid, i)
+        else
+            pop!(gen_extgrid, i)
+        end
+    end
+
     return JuMP.@objective(pm.model, Min,
         sum(
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) + 
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) + 
-            # sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
+            sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in gen_except_extgrid) + 
             sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
         for (n, nw_ref) in nws(pm))
     )
@@ -223,6 +234,16 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
         power_flex_price = 1
     end
 
+    gen_except_extgrid = deepcopy(ref(pm, network_id_first, :gen))
+    gen_extgrid = deepcopy(ref(pm, network_id_first, :gen))
+    for (i, gen) in ref(pm, network_id_first, :gen)
+        if ref(pm, network_id_first, :bus, gen["gen_bus"])["bus_type"] == 3
+            pop!(gen_except_extgrid, i)
+        else
+            pop!(gen_extgrid, i)
+        end
+    end
+
     if haskey(ref(pm, network_id_first), :tid)
         tid = ref(pm, network_id_first, :tid)
     else
@@ -237,7 +258,7 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) +
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) +
             sum(storage["construction_cost"]*var(pm, n, :z_ne_storage, i) for (i,storage) in nw_ref[:ne_storage]) +
-            sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
+            sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in gen_except_extgrid) + 
             sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
         for (n, nw_ref) in nws(pm)) / number_scenarios
     )
