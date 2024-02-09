@@ -79,4 +79,5 @@ include("common.jl")
 
     include("docs.jl")
 
+    include("cigre.jl")
 end
