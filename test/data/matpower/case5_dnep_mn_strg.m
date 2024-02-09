@@ -4,7 +4,6 @@ function mpc = case5_dnep_mn_strg
 mpc.version = '2';
 mpc.baseMVA = 100.0;
 mpc.power_flex_price = 0.0001;
-mpc.new_cable_cost = 10.0;
 
 %% bus data
 %	bus_i	type	Pd	Qd	Gs	Bs	area	Vm	Va	baseKV	zone	Vmax	Vmin

@@ -35,9 +35,8 @@ function constraint_thermal_limit_from_dnep(pm::AbstractPowerModel, n::Int, f_id
     (l, f_bus, t_bus) = f_idx
     p_fr = var(pm, n, :p, f_idx)
     q_fr = var(pm, n, :q, f_idx)
-    rate_add = var(pm, n, :rate_add, l)
 
-    cstr = JuMP.@constraint(pm.model, p_fr^2 + q_fr^2 <= rate_a^2 * (rate_add + 1))
+    cstr = JuMP.@constraint(pm.model, p_fr^2 + q_fr^2 <= rate_a^2)
     
     if _IM.report_duals(pm)
         sol(pm, n, :branch, f_idx[1])[:mu_sm_fr] = cstr
@@ -49,9 +48,8 @@ function constraint_thermal_limit_to_dnep(pm::AbstractPowerModel, n::Int, t_idx,
     (l, t_bus, f_bus) = t_idx
     p_to = var(pm, n, :p, t_idx)
     q_to = var(pm, n, :q, t_idx)
-    rate_add = var(pm, n, :rate_add, l)
 
-    cstr = JuMP.@constraint(pm.model, p_to^2 + q_to^2 <= rate_a^2 * (rate_add + 1))
+    cstr = JuMP.@constraint(pm.model, p_to^2 + q_to^2 <= rate_a^2)
 
     if _IM.report_duals(pm)
         sol(pm, n, :branch, t_idx[1])[:mu_sm_to] = cstr
@@ -302,13 +300,13 @@ function constraint_ne_storage_built(pm::AbstractPowerModel, i::Int, n_1::Int, n
 end
 
 ""
-function constraint_branch_rate_add(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::Int)
-    rate_add_2 = var(pm, n_2, :rate_add, i)
-    rate_add_1 = var(pm, n_1, :rate_add, i)
+# function constraint_branch_rate_add(pm::AbstractPowerModel, i::Int, n_1::Int, n_2::Int)
+#     rate_add_2 = var(pm, n_2, :rate_add, i)
+#     rate_add_1 = var(pm, n_1, :rate_add, i)
 
-    JuMP.@constraint(pm.model, rate_add_2 - rate_add_1 <= 1e-2)
-    JuMP.@constraint(pm.model, rate_add_2 - rate_add_1 <= 1e-2)
-end
+#     JuMP.@constraint(pm.model, rate_add_2 - rate_add_1 <= 1e-2)
+#     JuMP.@constraint(pm.model, rate_add_2 - rate_add_1 <= 1e-2)
+# end
 
 ""
 function constraint_storage_complementarity_nl(pm::AbstractPowerModel, n::Int, i)

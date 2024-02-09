@@ -336,12 +336,11 @@ function constraint_thermal_limit_to_dnep(pm::AbstractAPLossLessModels, n::Int, 
     # NOTE correct?
     l,i,j = t_idx
     p_fr = var(pm, n, :p, (l,j,i))
-    rate_add = var(pm, n, :rate_add, l)
     if isa(p_fr, JuMP.VariableRef) && JuMP.has_upper_bound(p_fr)
         cstr = JuMP.UpperBoundRef(p_fr)
     else
         p_to = var(pm, n, :p, t_idx)
-        cstr = JuMP.@constraint(pm.model, p_to <= rate_a * (rate_add + 1))
+        cstr = JuMP.@constraint(pm.model, p_to <= rate_a)
     end
 
     if _IM.report_duals(pm)

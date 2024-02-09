@@ -71,18 +71,12 @@ function objective_dnep_cost(pm::AbstractPowerModel)
     else
         power_flex_price = 1
     end
-    if haskey(ref(pm, nw_id_default), :new_cable_cost)
-        new_cable_cost = ref(pm, nw_id_default, :new_cable_cost)
-    else
-        new_cable_cost = 1e4
-    end
     return JuMP.@objective(pm.model, Min,
         sum(
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) + 
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) + 
             sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
-            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen]) + 
-            sum(new_cable_cost*var(pm, n, :rate_add, i) for (i,branch) in nw_ref[:branch])
+            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
         for (n, nw_ref) in nws(pm))
     )
 end
@@ -206,9 +200,9 @@ function build_dnep_mn_strg(pm::AbstractPowerModel)
         for i in ids(pm, :ne_storage, nw=n_2)
             constraint_ne_storage_built(pm, i, n_1, n_2)
         end
-        for i in ids(pm, :branch, nw=n_2)
-            constraint_branch_rate_add(pm, i, n_1, n_2)
-        end
+        # for i in ids(pm, :branch, nw=n_2)
+        #     constraint_branch_rate_add(pm, i, n_1, n_2)
+        # end
         n_1 = n_2
     end
 
@@ -229,12 +223,6 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
         power_flex_price = 1
     end
 
-    if haskey(ref(pm, network_id_first), :new_cable_cost)
-        new_cable_cost = ref(pm, network_id_first, :new_cable_cost)
-    else
-        new_cable_cost = 1e4
-    end
-    
     if haskey(ref(pm, network_id_first), :tid)
         tid = ref(pm, network_id_first, :tid)
     else
@@ -250,8 +238,7 @@ function objective_dnep_mn_strg_cost(pm::AbstractPowerModel)
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) +
             sum(storage["construction_cost"]*var(pm, n, :z_ne_storage, i) for (i,storage) in nw_ref[:ne_storage]) +
             sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in nw_ref[:gen]) + 
-            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen]) + 
-            sum(new_cable_cost*var(pm, n, :rate_add, i) for (i,branch) in nw_ref[:branch])
+            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
         for (n, nw_ref) in nws(pm)) / number_scenarios
     )
 end
