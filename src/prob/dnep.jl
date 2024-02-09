@@ -87,7 +87,7 @@ function objective_dnep_cost(pm::AbstractPowerModel)
             sum(branch["construction_cost"]*var(pm, n, :branch_ne, i) for (i,branch) in nw_ref[:ne_branch]) + 
             sum(gen["construction_cost"]*var(pm, n, :gen_ne, i) for (i,gen) in nw_ref[:ne_gen]) + 
             sum(power_flex_price*var(pm, n, :pg_loss, i) for (i,gen) in gen_except_extgrid) + 
-            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen]) + 0.1
+            sum(power_flex_price*var(pm, n, :pg_ne_loss, i) for (i,gen) in nw_ref[:ne_gen])
         for (n, nw_ref) in nws(pm))
     )
 end
